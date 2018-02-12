@@ -12,7 +12,6 @@ import coursier.core.compatibility
 import coursier.{Cache, Fetch}
 import coursier.maven.{MavenRepository, Pom}
 import coursier.util.WebPage
-import de.upb.cs.swt.delphi.crawler.BlockingHttpClient
 import de.upb.cs.swt.delphi.crawler.elastic.ElasticActor.Push
 import de.upb.cs.swt.delphi.crawler.maven.MavenCrawlActor.{DiscoverMetadata, ProcessMetadata, ProcessNew, StartDiscover}
 
