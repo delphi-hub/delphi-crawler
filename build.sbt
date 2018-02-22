@@ -7,6 +7,10 @@ scalaVersion := "2.12.4"
 lazy val root = (project in file(".")).
   enablePlugins(JavaAppPackaging).
   enablePlugins(DockerPlugin).
+  settings (
+    dockerBaseImage := "openjdk:jre-alpine"
+  ).
+  enablePlugins(AshScriptPlugin).
   enablePlugins(BuildInfoPlugin).
   settings(
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
