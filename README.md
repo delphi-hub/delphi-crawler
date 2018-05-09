@@ -1,0 +1,2 @@
+# delphi-crawler
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/170ec0b4fcb1405e810ae9ad6c03a38d)](https://app.codacy.com/app/bhermann/delphi-crawler?utm_source=github.com&utm_medium=referral&utm_content=delphi-hub/delphi-crawler&utm_campaign=badger)
