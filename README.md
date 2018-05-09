@@ -41,7 +41,7 @@ Feel welcome to join our chatroom on Gitter: [![Join the chat at https://gitter.
 
 ## Contributing
 
-Before contributing, please read our [Code of Conduct](docs/CODE_OF_CONDUCT.md).
+Before contributing, please read our [Code of Conduct](CODE_OF_CONDUCT.md).
 
 
 ## License
