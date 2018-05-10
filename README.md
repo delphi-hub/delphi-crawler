@@ -2,6 +2,9 @@
 
 The automated crawling and processing engine for the Delphi platform.
 
+We are currently in pre-alpha state! There is no release and the code in
+this repository is purely experimental!
+
 |branch | status | codacy |
 | :---: | :---: | :---: |
 | master | <img src="https://travis-ci.org/delphi-hub/delphi-crawler.svg?branch=master"> | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/d52f09343249401f829585f6edcf6a32)](https://www.codacy.com/app/bhermann/delphi-crawler?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=delphi-hub/delphi-crawler&amp;utm_campaign=Badge_Grade)|
