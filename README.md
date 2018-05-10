@@ -41,9 +41,22 @@ Feel welcome to join our chatroom on Gitter: [![Join the chat at https://gitter.
 
 ## Contributing
 
+Contributions are *very* welcome!
+
 Before contributing, please read our [Code of Conduct](CODE_OF_CONDUCT.md).
+
+Refer to the [Contribution Guide](CONTRIBUTING.md) for details about the workflow.
+We use Pull Requests to collect contributions. Especially look out for "help wanted" issues
+[![GitHub issues by-label](https://img.shields.io/github/issues/delphi-hub/delphi-crawler/help%20wanted.svg)](https://github.com/delphi-hub/delphi-crawler/issues?q=is%3Aopen+is%3Aissue+label%3A%22help+wanted%22),
+but feel free to work on other issues as well.
+You can ask for clarification in the issues directly, or use our Gitter
+chat for a more interactive experience.
+
+[![GitHub issues](https://img.shields.io/github/issues/delphi-hub/delphi-crawler.svg)](https://github.com/delphi-hub/delphi-crawler/issues)
 
 
 ## License
 
 The Delphi crawler is open source and available under Apache 2 License.
+
+[![GitHub license](https://img.shields.io/github/license/delphi-hub/delphi-crawler.svg)](https://github.com/delphi-hub/delphi-crawler/blob/master/LICENSE)
