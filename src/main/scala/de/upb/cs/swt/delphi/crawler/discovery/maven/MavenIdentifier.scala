@@ -1,4 +1,4 @@
-package de.upb.cs.swt.delphi.crawler.maven
+package de.upb.cs.swt.delphi.crawler.discovery.maven
 
 import de.upb.cs.swt.delphi.crawler.Identifier
 

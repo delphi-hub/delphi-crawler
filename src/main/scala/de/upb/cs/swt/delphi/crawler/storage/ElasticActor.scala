@@ -1,16 +1,13 @@
-package de.upb.cs.swt.delphi.crawler.elastic
+package de.upb.cs.swt.delphi.crawler.storage
 
 import akka.actor.{Actor, ActorLogging, Props}
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.HttpClient
 import de.upb.cs.swt.delphi.crawler.Identifier
-import de.upb.cs.swt.delphi.crawler.elastic.ElasticActor.Push
-import de.upb.cs.swt.delphi.crawler.git.GitIdentifier
-import de.upb.cs.swt.delphi.crawler.maven.MavenIdentifier
+import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
+import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
+import de.upb.cs.swt.delphi.crawler.storage.ElasticActor.Push
 
-/**
-  * Created by benhermann on 06.02.18.
-  */
 class ElasticActor(client: HttpClient) extends Actor with ActorLogging {
 
   override def receive = {

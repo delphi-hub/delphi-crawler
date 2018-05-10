@@ -4,9 +4,9 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.http.scaladsl.model.Uri
 import com.sksamuel.elastic4s.ElasticsearchClientUri
 import com.sksamuel.elastic4s.http.HttpClient
-import de.upb.cs.swt.delphi.crawler.elastic.ElasticActor
-import de.upb.cs.swt.delphi.crawler.maven.MavenCrawlActor
-import de.upb.cs.swt.delphi.crawler.maven.MavenCrawlActor.StartDiscover
+import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor
+import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor.StartDiscover
+import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
 
 /**
   * Created by benhermann on 06.02.18.

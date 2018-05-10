@@ -1,4 +1,4 @@
-package de.upb.cs.swt.delphi.crawler.maven
+package de.upb.cs.swt.delphi.crawler.discovery.maven
 
 import akka.NotUsed
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
@@ -8,8 +8,8 @@ import akka.stream._
 import akka.stream.scaladsl.{Broadcast, Flow, GraphDSL, Sink, Source, ZipWith}
 import coursier.core.compatibility
 import coursier.shaded.org.jsoup.Jsoup
-import de.upb.cs.swt.delphi.crawler.elastic.ElasticActor.Push
-import de.upb.cs.swt.delphi.crawler.maven.MavenCrawlActor.{DiscoverMetadata, ProcessMetadata, ProcessNew, StartDiscover}
+import de.upb.cs.swt.delphi.crawler.storage.ElasticActor.Push
+import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor.{DiscoverMetadata, ProcessMetadata, ProcessNew, StartDiscover}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
@@ -17,9 +17,6 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success}
 
-/**
-  * Created by benhermann on 05.02.18.
-  */
 class MavenCrawlActor(baseUri: Uri, elasticActor: ActorRef) extends Actor with ActorLogging {
   implicit val executionContext = context.system.dispatcher
   implicit val materializer: ActorMaterializer = ActorMaterializer(ActorMaterializerSettings(context.system))
