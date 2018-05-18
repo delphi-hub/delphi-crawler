@@ -17,6 +17,10 @@ lazy val crawler = (project in file(".")).
     buildInfoPackage := "de.upb.cs.swt.delphi.crawler"
   )
 
+mainClass in (Compile, run) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
+mainClass in (Compile, packageBin) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
+mainClass in Compile :=  Some("de.upb.cs.swt.delphi.crawler.Crawler")
+
 val akkaVersion = "2.4.20"
 
 libraryDependencies ++= Seq(
@@ -24,7 +28,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-testkit" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-stream" % akkaVersion,
   "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
-  "com.typesafe.akka" %% "akka-http-core" % "10.0.11"
+  "com.typesafe.akka" %% "akka-http" % "10.0.11"
 )
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
@@ -64,3 +68,6 @@ libraryDependencies ++= Seq(
   "io.get-coursier" %% "coursier" % "1.0.1",
   "io.get-coursier" %% "coursier-cache" % "1.0.1"
 )
+
+libraryDependencies += "org.apache.maven.indexer" % "indexer-reader" % "6.0.0"
+libraryDependencies += "org.apache.maven.indexer" % "indexer-core" % "6.0.0"
