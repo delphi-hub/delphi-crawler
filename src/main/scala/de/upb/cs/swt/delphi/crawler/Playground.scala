@@ -9,7 +9,7 @@ import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor.StartDiscove
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
 
 /**
-  * Created by benhermann on 06.02.18.
+  * Preliminary starter
   */
 object Playground extends App {
 
