@@ -1,7 +1,7 @@
 package de.upb.cs.swt.delphi.crawler
 
 import akka.actor.ActorSystem
-import de.upb.cs.swt.delphi.crawler.storage.ElasticPreflightCheck
+import de.upb.cs.swt.delphi.crawler.storage.ElasticReachablePreflightCheck
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
@@ -16,7 +16,7 @@ object Startup extends AppLogging {
   def preflightCheck(configuration: Configuration)(implicit system : ActorSystem) : Try[Configuration] = {
     log.info("Performing pre-flight checks")
     implicit val context : ExecutionContext = system.dispatcher
-    val result = ElasticPreflightCheck.check(configuration)
+    val result = ElasticReachablePreflightCheck.check(configuration)
     result match {
       case Success(configuration) => println(configuration)
       case Failure(e) => processPreflightError(e)

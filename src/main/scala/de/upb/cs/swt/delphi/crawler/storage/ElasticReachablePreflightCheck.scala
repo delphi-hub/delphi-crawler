@@ -8,14 +8,16 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 import scala.util.{Failure, Success, Try}
 
-object ElasticPreflightCheck extends PreflightCheck {
+object ElasticReachablePreflightCheck extends PreflightCheck {
   override def check(configuration: Configuration)(implicit context: ExecutionContext): Try[Configuration] = {
     val client = HttpClient(configuration.elasticsearchClientUri)
 
-    val f = client.execute {
+    val f = (client.execute {
       nodeInfo()
     } map { i => Success(configuration)
     } recover { case e => Failure(e)
+    }).andThen {
+      case _ => client.close()
     }
 
     Await.result(f, Duration.Inf)
