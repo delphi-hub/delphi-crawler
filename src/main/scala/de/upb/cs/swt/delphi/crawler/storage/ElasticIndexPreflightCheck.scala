@@ -16,8 +16,9 @@ object ElasticIndexPreflightCheck extends PreflightCheck with ElasticIndexCreato
 
     val f = client.execute {
       indexExists("delphi")
+    } andThen {
+      case _ => client.close()
     }
-
     val delphiIndexExists: Either[RequestFailure, RequestSuccess[IndexExistsResponse]] = Await.result(f, Duration.Inf)
 
     delphiIndexExists match {
