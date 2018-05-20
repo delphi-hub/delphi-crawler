@@ -10,6 +10,7 @@ trait IndexProcessing {
   def createSource() : Source[MavenIdentifier, NotUsed] = {
     val base = new URL("http://repo1.maven.org/maven2/")
 
+    println("Creating source")
     Source.unfoldResource[MavenIdentifier, MavenIndexReader](
       () => new MavenIndexReader(base),
       reader => reader.read(),
@@ -37,6 +38,6 @@ trait IndexProcessing {
         case false => None
       }
     }
-    def close() = {}
+    def close() = { ir.close() }
   }
 }

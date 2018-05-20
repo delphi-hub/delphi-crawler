@@ -2,7 +2,11 @@ package de.upb.cs.swt.delphi.crawler
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
+import com.sksamuel.elastic4s.http.HttpClient
 import de.upb.cs.swt.delphi.crawler.control.Server
+import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor
+import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor.Start
+import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -26,11 +30,21 @@ object Crawler extends App with AppLogging {
 
   Startup.showStartupInfo
   Startup.preflightCheck(configuration) match {
-    case Success(c) => new Server(configuration.controlServerPort).start()
+    case Success(c) =>
     case Failure(e) => {
       system.terminate()
       sys.exit(1)
     }
   }
+
+
+  log.info("Preflight checks completed. Entering flight mode...")
+
+  new Server(configuration.controlServerPort).start()
+
+  val elasticActor = system.actorOf(ElasticActor.props(HttpClient(configuration.elasticsearchClientUri)))
+  val mavenCrawlActor = system.actorOf(MavenCrawlActor.props(elasticActor, configuration))
+
+  mavenCrawlActor ! Start
 
 }

@@ -11,6 +11,15 @@ import de.upb.cs.swt.delphi.crawler.storage.ElasticActor.Push
 class ElasticActor(client: HttpClient) extends Actor with ActorLogging {
 
   override def receive = {
+    case m : MavenIdentifier => {
+      log.info("Pushing new maven identifier to elastic: [{}]", m)
+      client.execute {
+        indexInto("delphi" / "mavenArtifact").fields("repository" -> m.repository,
+                                                     "groupId" -> m.groupId,
+                                                     "artifactId" -> m.artifactId,
+                                                     "version" -> m.version)
+      }
+    }
     case Push(m: MavenIdentifier) => {
       log.info("Pushing new maven identifier to elastic: [{}]", m)
       client.execute {

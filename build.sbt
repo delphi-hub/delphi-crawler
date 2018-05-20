@@ -33,7 +33,7 @@ libraryDependencies ++= Seq(
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
 
-val elastic4sVersion = "6.1.4"
+val elastic4sVersion = "6.2.8"
 libraryDependencies ++= Seq(
   "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion,
 
