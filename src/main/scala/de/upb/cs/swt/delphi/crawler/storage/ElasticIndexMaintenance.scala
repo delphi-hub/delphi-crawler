@@ -3,6 +3,7 @@ package de.upb.cs.swt.delphi.crawler.storage
 import akka.actor.ActorSystem
 import com.sksamuel.elastic4s.http.HttpClient
 import com.sksamuel.elastic4s.http.ElasticDsl._
+import com.sksamuel.elastic4s.mappings.FieldDefinition
 import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration}
 
 import scala.util.{Success, Try}
@@ -14,15 +15,21 @@ trait ElasticIndexMaintenance extends AppLogging  {
     log.warning("Could not find Delphi index. Creating it...")
 
     val client = HttpClient(configuration.elasticsearchClientUri)
+    val featureList: Seq[FieldDefinition] = ElasticFeatureListMapping.getMapping
 
     val f = client.execute {
       createIndex("delphi") mappings (
-        mapping("mavenArtifact") as (
-          keywordField("id"),
-          textField("repository"),
-          textField("groupId"),
-          textField("artifactId"),
-          textField("version")
+        mapping("project") as (
+          keywordField("source"),
+          keywordField("language"),
+
+          textField("identifier.repoUrl"),
+          keywordField("identifier.commitId"),
+          textField("identifier.groupId"),
+          textField("identifier.artifactId"),
+          keywordField("identifier.version"),
+
+          objectField("features") fields featureList
         )
       )
 
