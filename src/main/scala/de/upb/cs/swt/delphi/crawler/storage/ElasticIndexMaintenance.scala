@@ -15,7 +15,7 @@ trait ElasticIndexMaintenance extends AppLogging  {
     log.warning("Could not find Delphi index. Creating it...")
 
     val client = HttpClient(configuration.elasticsearchClientUri)
-    val featureList: Seq[FieldDefinition] = ElasticFeatureListMapping.getMapping
+    val featureList: Seq[FieldDefinition] = ElasticFeatureListMapping.getMapAsSeq
 
     val f = client.execute {
       createIndex("delphi") mappings (
