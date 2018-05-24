@@ -23,11 +23,16 @@ trait ElasticIndexMaintenance extends AppLogging  {
           keywordField("source"),
           keywordField("language"),
 
-          textField("identifier.repoUrl"),
-          keywordField("identifier.commitId"),
-          textField("identifier.groupId"),
-          textField("identifier.artifactId"),
-          keywordField("identifier.version"),
+          objectField("identifier") fields Seq(
+            //Github
+            textField("repoUrl"),
+            keywordField("commitId"),
+
+            //Maven
+            textField("groupId"),
+            textField("artifactId"),
+            keywordField("version")
+          ),
 
           objectField("features") fields featureList
         )
