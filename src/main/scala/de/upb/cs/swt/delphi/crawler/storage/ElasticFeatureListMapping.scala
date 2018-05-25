@@ -10,6 +10,8 @@ object ElasticFeatureListMapping {
     featureMap.toSeq.map(tup => tup._2(tup._1))
 
   //Stores the mapping for the features returned by Hermes as a Map of feature names to field types
+  //These field names are slightly different from the feature names Hermes returns
+  //  in that any surrounding double quotes are stripped and any newlines are replaced with spaces
   /*TODO: Change mapping types to minimize search times, and confirm that the results returned by Hermes do not exceed
     TODO:      the maximum values of each of these field types*/
   private val featureMap: Map[String, String => FieldDefinition] = Map[String, String => FieldDefinition](
