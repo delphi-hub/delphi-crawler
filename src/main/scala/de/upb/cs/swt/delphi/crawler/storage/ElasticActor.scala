@@ -21,18 +21,27 @@ class ElasticActor(client: HttpClient) extends Actor with ActorLogging {
                                                        "version" -> m.version))
       }
     }
-    case Push(m: MavenIdentifier) => {
-      log.info("Pushing new maven identifier to elastic: [{}]", m)
-      client.execute {
-          indexInto("myindex" / "mytype").fields("groupid" -> m.groupId, "artifactid" -> m.artifactId, "version" -> m.version)
-      }.await
-    }
-    case Push(g : GitIdentifier) => {
+    case g : GitIdentifier => {
       log.info("Pushing new git identifier to elastic: [{}]", g)
       client.execute {
-          indexInto("myindex" / "mytype").fields("repoUrl" -> g.repoUrl, "commitId" -> g.commitId)
-      }.await
+        indexInto("delphi" / "project").fields("source" -> "Git",
+                                                     "identifier" -> Map(
+                                                       "repoUrl" -> g.repoUrl,
+                                                       "commitId" -> g.commitId))
+      }
     }
+//    case Push(m: MavenIdentifier) => {
+//      log.info("Pushing new maven identifier to elastic: [{}]", m)
+//      client.execute {
+//          indexInto("myindex" / "mytype").fields("groupid" -> m.groupId, "artifactid" -> m.artifactId, "version" -> m.version)
+//      }.await
+//    }
+//    case Push(g : GitIdentifier) => {
+//      log.info("Pushing new git identifier to elastic: [{}]", g)
+//      client.execute {
+//          indexInto("myindex" / "mytype").fields("repoUrl" -> g.repoUrl, "commitId" -> g.commitId)
+//      }.await
+//    }
     case x => log.warning("Received unknown message: [{}] ", x)
   }
 }

@@ -24,7 +24,7 @@ trait ElasticIndexMaintenance extends AppLogging  {
           keywordField("language"),
 
           objectField("identifier") fields Seq(
-            //Github
+            //Git
             textField("repoUrl"),
             keywordField("commitId"),
 
