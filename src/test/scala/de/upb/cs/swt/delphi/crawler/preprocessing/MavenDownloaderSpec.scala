@@ -1,16 +1,9 @@
-import java.io.{ByteArrayOutputStream, File, InputStream}
-import java.nio.charset.StandardCharsets
-import java.nio.file.{Files, Path, Paths}
+import java.io.{ByteArrayOutputStream, InputStream}
+import java.nio.file.{Files, Paths}
 
-import akka.actor.ActorSystem
-import akka.testkit.{ImplicitSender, TestActors, TestKit}
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
-import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers, WordSpecLike}
 import de.upb.cs.swt.delphi.crawler.preprocessing.MavenDownloader
-
-import scala.concurrent.Await
-import scala.concurrent.duration.Duration
-import scala.io.Source;
+import org.scalatest.{FlatSpec, Matchers};
 
 class MavenDownloaderSpec extends FlatSpec with Matchers {
   "MavenDownloader" should "save jar file" in {
