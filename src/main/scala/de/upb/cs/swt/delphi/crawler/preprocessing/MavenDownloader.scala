@@ -32,11 +32,11 @@ class MavenDownloader(identifier: MavenIdentifier) {
   def jarFilename(identifier: MavenIdentifier): String =
     identifier.artifactId + "-" + identifier.version + ".jar"
 
-  def downloadJar(): InputStream = {
-    pomResource.read();
+  def downloadJar(): JarFile = {
+    JarFile(pomResource.read())
   }
 
-  def downloadPom(): InputStream = {
-    jarResource.read();
+  def downloadPom(): PomFile= {
+    PomFile(pomResource.read())
   }
 }
