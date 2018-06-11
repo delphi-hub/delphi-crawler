@@ -18,7 +18,10 @@ class MavenDownloader(identifier: MavenIdentifier) {
   val pomResource = http.locate(pomFilename(identifier))
   val jarResource = http.locate(jarFilename(identifier))
 
-
+  /**
+    * Construct url from maven identifier
+    * @return Base URI
+    */
   def constructArtifactBaseUri(): URI =
     new URI(identifier.repository)
       .resolve(identifier.groupId.replace('.', '/') + "/")
