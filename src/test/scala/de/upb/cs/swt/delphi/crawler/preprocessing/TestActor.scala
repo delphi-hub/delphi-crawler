@@ -8,17 +8,17 @@ import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 /**
   * @author Hariharan.
   */
-class TestActor extends Actor
+class TestActor(spec: DispatchActorSpec) extends Actor
   with ActorLogging {
   override def receive: Receive = {
     case j: JarFile => {
       log.info("Received Jar file")
-
+   //   spec.assert(j.isInstanceOf[JarFile])
     }
 
     case p: PomFile => {
       log.info("Received Pom file")
-
+     // spec.assert(p.isInstanceOf[PomFile])
     }
 
   }
@@ -26,7 +26,7 @@ class TestActor extends Actor
 }
 
 object TestActor {
-  def props = Props(new TestActor())
+  def props(spec: DispatchActorSpec) = Props(new TestActor(spec))
 
 
 }

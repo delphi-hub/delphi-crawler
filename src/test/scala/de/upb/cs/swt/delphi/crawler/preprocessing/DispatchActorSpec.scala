@@ -1,11 +1,12 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
-import akka.actor.{Actor, ActorSystem}
-import akka.testkit.{ImplicitSender, TestActorRef, TestKit}
+import akka.actor.ActorSystem
+import akka.testkit.{ImplicitSender, TestKit}
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.preprocessing.DispatchActor.{DownloadJar, DownloadPom}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
-
+import scala.concurrent.duration._
+import de.upb.cs.swt.delphi.crawler.preprocessing.Common._
 /**
   * @author Hariharan.
   */
@@ -17,18 +18,23 @@ class DispatchActorSpec extends TestKit(ActorSystem("DispatchActorSpec")) with I
   "A Dispatch actor" must {
     "download jar file" in {
       val mavenIdentifier = new MavenIdentifier("http://central.maven.org/maven2/", "junit", "junit", "4.12")
-      val testActorRef=system.actorOf(TestActor.props)
-      val dispatchActor = system.actorOf(DispatchActor.props(testActorRef))
+      val dispatchActor = system.actorOf(DispatchActor.props(testActor))
       dispatchActor ! DownloadJar(mavenIdentifier)
-
+      val msg=receiveOne(2.seconds)
+      assert(msg.isInstanceOf[JarFile])
+      val jarFile=msg.asInstanceOf[JarFile]
+      checkJar(jarFile.is)
     }
   }
   "A Dispatch actor" must {
     "download pom file" in {
       val mavenIdentifier = new MavenIdentifier("http://central.maven.org/maven2/", "junit", "junit", "4.12")
-      val testActorRef=system.actorOf(TestActor.props)
-      val dispatchActor = system.actorOf(DispatchActor.props(testActorRef))
+      val dispatchActor = system.actorOf(DispatchActor.props(testActor))
       dispatchActor ! DownloadPom(mavenIdentifier)
+      val msg=receiveOne(2.seconds)
+      assert(msg.isInstanceOf[PomFile])
+      val pomFile=msg.asInstanceOf[PomFile]
+     checkPom(pomFile.is)
     }
   }
 }
