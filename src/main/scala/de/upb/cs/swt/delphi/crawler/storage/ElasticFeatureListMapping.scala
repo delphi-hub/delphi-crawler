@@ -7,7 +7,7 @@ object ElasticFeatureListMapping {
 
   //Returns a Seq object of FieldDefinitions that defines all fields in the feature mapping
   def getMapAsSeq: Seq[FieldDefinition] =
-    featureMap.toSeq.map(tup => tup._2(tup._1))
+    featureMap.toSeq.map{case (name, fun) => fun(name)}
 
   //Stores the mapping for the features returned by Hermes as a Map of feature names to field types
   //These field names are slightly different from the feature names Hermes returns
