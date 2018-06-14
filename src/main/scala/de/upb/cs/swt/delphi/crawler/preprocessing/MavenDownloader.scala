@@ -1,20 +1,28 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
+import java.io.InputStream
+
+import scala.concurrent.ExecutionContext.Implicits.global
 import java.net.URI
 
+import de.upb.cs.swt.delphi.crawler.BuildInfo
 import de.upb.cs.swt.delphi.crawler.discovery.maven.{HttpResourceHandler, MavenIdentifier}
+import org.apache.http.client.methods.HttpGet
+import org.apache.http.impl.client.HttpClientBuilder
 
-trait MavenDownloader {
+import scala.concurrent.Future
+import scala.io.Source
 
-  def populate(identifier: MavenIdentifier): MavenArtifact = {
-    val http = new HttpResourceHandler(constructArtifactBaseUri(identifier))
-    val pomResource = http.locate(pomFilename(identifier))
-    val jarResource = http.locate(jarFilename(identifier))
+class MavenDownloader(identifier: MavenIdentifier) {
+  val http = new HttpResourceHandler(constructArtifactBaseUri())
+  val pomResource = http.locate(pomFilename(identifier))
+  val jarResource = http.locate(jarFilename(identifier))
 
-    MavenArtifact(identifier)
-  }
-
-  def constructArtifactBaseUri(identifier: MavenIdentifier): URI =
+  /**
+    * Construct url from maven identifier
+    * @return Base URI
+    */
+  def constructArtifactBaseUri(): URI =
     new URI(identifier.repository)
       .resolve(identifier.groupId.replace('.', '/') + "/")
       .resolve(identifier.artifactId + "/")
@@ -26,4 +34,12 @@ trait MavenDownloader {
 
   def jarFilename(identifier: MavenIdentifier): String =
     identifier.artifactId + "-" + identifier.version + ".jar"
+
+  def downloadJar(): JarFile = {
+    JarFile(pomResource.read())
+  }
+
+  def downloadPom(): PomFile= {
+    PomFile(pomResource.read())
+  }
 }
