@@ -14,7 +14,8 @@ class ElasticActor(client: HttpClient) extends Actor with ActorLogging {
     case m : MavenIdentifier => {
       log.info("Pushing new maven identifier to elastic: [{}]", m)
       client.execute {
-        indexInto("delphi" / "project").fields("source" -> "Maven",
+        indexInto("delphi" / "project").fields( "name" -> (m.groupId +":"+ m.artifactId +":"+ m.version),
+                                                     "source" -> "Maven",
                                                      "identifier" -> Map(
                                                        "groupId" -> m.groupId,
                                                        "artifactId" -> m.artifactId,
@@ -24,7 +25,8 @@ class ElasticActor(client: HttpClient) extends Actor with ActorLogging {
     case g : GitIdentifier => {
       log.info("Pushing new git identifier to elastic: [{}]", g)
       client.execute {
-        indexInto("delphi" / "project").fields("source" -> "Git",
+        indexInto("delphi" / "project").fields("name" -> (g.repoUrl +"/"+ g.commitId),
+                                                     "source" -> "Git",
                                                      "identifier" -> Map(
                                                        "repoUrl" -> g.repoUrl,
                                                        "commitId" -> g.commitId))

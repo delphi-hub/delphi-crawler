@@ -1,9 +1,9 @@
 package de.upb.cs.swt.delphi.crawler.storage
 
 import akka.actor.ActorSystem
+import com.sksamuel.elastic4s.analyzers.KeywordAnalyzer
 import com.sksamuel.elastic4s.http.HttpClient
 import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.mappings.FieldDefinition
 import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration}
 
 import scala.util.{Success, Try}
@@ -15,29 +15,45 @@ trait ElasticIndexMaintenance extends AppLogging  {
     log.warning("Could not find Delphi index. Creating it...")
 
     val client = HttpClient(configuration.elasticsearchClientUri)
-    val featureList: Seq[FieldDefinition] = ElasticFeatureListMapping.getMapAsSeq
+    val featureList = ElasticFeatureListMapping.getMapAsSeq
+
+    val identifierFields = Seq(
+      //Git
+      textField("repoUrl"),
+      keywordField("commitId"),
+
+      //Maven
+      textField("groupId"),
+      textField("artifactId"),
+      keywordField("version")
+    )
 
     val f = client.execute {
       createIndex("delphi") mappings (
         mapping("project") as (
+          keywordField("name"),
           keywordField("source"),
           keywordField("language"),
 
-          objectField("identifier") fields Seq(
-            //Git
-            textField("repoUrl"),
-            keywordField("commitId"),
+          objectField("identifier") fields identifierFields,
 
-            //Maven
-            textField("groupId"),
-            textField("artifactId"),
-            keywordField("version")
+          nestedField("calls") fields Seq(
+            keywordField("name"),
+            objectField("identifier") fields identifierFields,
+            textField("methods") analyzer KeywordAnalyzer
           ),
 
           objectField("features") fields featureList
         )
       )
 
+    }.await
+
+    //Increases maximum number of nested fields
+    client.execute{
+      updateSettings("delphi").set(
+        "index.mapping.nested_fields.limit", "250"
+      )
     }.await
 
     Success(configuration)

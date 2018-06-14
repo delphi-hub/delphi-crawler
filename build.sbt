@@ -55,7 +55,6 @@ libraryDependencies ++= Seq(
   "de.opal-project" % "opal-developer-tools_2.12" % opalVersion
 )
 
-/*
 val mavenVersion = "3.5.2"
 libraryDependencies ++= Seq (
   "org.apache.maven" % "maven-core" % mavenVersion,
@@ -63,7 +62,6 @@ libraryDependencies ++= Seq (
   "org.apache.maven" % "maven-repository-metadata" % mavenVersion,
   "org.apache.maven" % "maven-resolver-provider" % mavenVersion
 )
-*/
 
 libraryDependencies ++= Seq(
   "io.get-coursier" %% "coursier" % "1.0.1",
