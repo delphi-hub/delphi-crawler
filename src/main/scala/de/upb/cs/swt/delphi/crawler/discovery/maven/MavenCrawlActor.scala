@@ -16,12 +16,14 @@ class MavenCrawlActor(storageActor : ActorRef,
                                                     with IndexProcessing
                                                     with ArtifactExistsQuery {
   val seen = mutable.HashSet[MavenIdentifier]()
+
   override def receive: Receive = {
     case Start => {
       log.info("Starting Maven discovery process...")
       implicit val materializer = ActorMaterializer()
       implicit val httpClient = HttpClient(configuration.elasticsearchClientUri)
-      createSource()
+      implicit val logger = log
+      createSource
         .throttle(10, 10 millis, 10, ThrottleMode.shaping)
         .filter(!seen.contains(_)) // local seen cache to compensate for lags
         .map{m => seen.add(m); m}
