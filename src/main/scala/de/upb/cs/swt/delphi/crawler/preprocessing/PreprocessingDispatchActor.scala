@@ -23,7 +23,7 @@ class PreprocessingDispatchActor(configuration : Configuration, nextStep : Actor
       val mavenArtifact = downloadActor ? m
 
       // After transformation push to processing dispatch
-
+      nextStep ! mavenArtifact
     }
 
 
