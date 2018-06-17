@@ -2,10 +2,17 @@ package de.upb.cs.swt.delphi.crawler.preprocessing
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.preprocessing.DispatchActor.{DownloadJar, DownloadPom}
+import de.upb.cs.swt.delphi.crawler.preprocessing.PreprocessingDispatchActor.{DownloadJar, DownloadPom}
 
-class DispatchActor(ref: ActorRef) extends Actor with ActorLogging {
+class PreprocessingDispatchActor(ref: ActorRef) extends Actor with ActorLogging {
   override def receive: Receive = {
+    case m : MavenIdentifier => {
+      // Start creation of base record
+
+      // Transform maven identifier into maven artifact
+      // After transformation push to processing dispatch
+    }
+
     case DownloadJar(id: MavenIdentifier) => {
       log.info("Downloading jar file " + id.artifactId)
       val downloader=new MavenDownloader(id)
@@ -20,8 +27,8 @@ class DispatchActor(ref: ActorRef) extends Actor with ActorLogging {
 
 }
 
-object DispatchActor {
-  def props(actorRef:ActorRef) = Props(new DispatchActor(actorRef))
+object PreprocessingDispatchActor {
+  def props(actorRef:ActorRef) = Props(new PreprocessingDispatchActor(actorRef))
 
   case class DownloadJar(id: MavenIdentifier)
 
