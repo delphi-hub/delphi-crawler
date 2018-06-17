@@ -1,37 +1,32 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import akka.actor.{Actor, ActorLogging, Props}
+import com.sksamuel.elastic4s.http.HttpClient
+import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.preprocessing.PreprocessingDispatchActor.{DownloadJar, DownloadPom}
+import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
+import akka.pattern.ask
 
-class PreprocessingDispatchActor(ref: ActorRef) extends Actor with ActorLogging {
+class PreprocessingDispatchActor(configuration : Configuration) extends Actor with ActorLogging {
   override def receive: Receive = {
     case m : MavenIdentifier => {
       // Start creation of base record
+      val elasticActor = context.actorOf(ElasticActor.props(HttpClient(configuration.elasticsearchClientUri)))
+      elasticActor forward m
 
       // Transform maven identifier into maven artifact
+      val downloadActor = context.actorOf(MavenDownloadActor.props)
+      val mavenArtifact = downloadActor ? m
+
       // After transformation push to processing dispatch
+
     }
 
-    case DownloadJar(id: MavenIdentifier) => {
-      log.info("Downloading jar file " + id.artifactId)
-      val downloader=new MavenDownloader(id)
-      ref forward downloader.downloadJar()
-    }
-    case DownloadPom(id: MavenIdentifier) => {
-      log.info("Downloading pom file " + id.artifactId)
-      val downloader=new MavenDownloader(id)
-      ref forward downloader.downloadPom()
-    }
+
   }
 
 }
 
 object PreprocessingDispatchActor {
-  def props(actorRef:ActorRef) = Props(new PreprocessingDispatchActor(actorRef))
-
-  case class DownloadJar(id: MavenIdentifier)
-
-  case class DownloadPom(id: MavenIdentifier)
-
+  def props(configuration: Configuration) = Props(new PreprocessingDispatchActor(configuration))
 }

@@ -10,7 +10,7 @@ import de.upb.cs.swt.delphi.crawler.preprocessing.Common._
 /**
   * @author Hariharan.
   */
-class PreprocessingDispatchActorSpec extends TestKit(ActorSystem("DispatchActorSpec")) with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
+class PreprocessingProcessingDispatchActorSpec extends TestKit(ActorSystem("DispatchActorSpec")) with ImplicitSender with WordSpecLike with Matchers with BeforeAndAfterAll {
   override def afterAll {
     TestKit.shutdownActorSystem(system)
   }
