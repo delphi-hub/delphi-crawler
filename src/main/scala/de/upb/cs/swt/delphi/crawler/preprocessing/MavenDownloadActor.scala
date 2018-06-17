@@ -9,7 +9,7 @@ class MavenDownloadActor extends Actor with ActorLogging {
       val downloader = new MavenDownloader(m)
       val jar = downloader.downloadJar()
       val pom = downloader.downloadPom()
-      MavenArtifact(m, jar, pom)
+      sender() ! MavenArtifact(m, jar, pom)
     }
   }
 }
