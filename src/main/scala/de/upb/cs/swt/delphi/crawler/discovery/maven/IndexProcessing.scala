@@ -6,6 +6,7 @@ import akka.NotUsed
 import akka.event.LoggingAdapter
 import akka.stream.scaladsl.Source
 import org.apache.maven.index.reader.IndexReader
+import org.slf4j.LoggerFactory
 
 import scala.util.{Failure, Success, Try}
 
@@ -25,7 +26,7 @@ trait IndexProcessing {
           reader => reader.close())
       }
       case Failure(e) => {
-        log.error("Could not reach resource")
+        log.error(s"Could not reach resource. Terminating crawling for $base.")
         Source.empty
       }
     }
@@ -33,21 +34,22 @@ trait IndexProcessing {
   }
 
   class MavenIndexReader(base : URL) {
+    val log = LoggerFactory.getLogger(this.getClass)
 
     val ir = new IndexReader(null, new HttpResourceHandler(base.toURI.resolve(".index/")))
 
-    println("Index Reader created")
-    println(ir.getIndexId)
-    println(ir.getPublishedTimestamp)
-    println(ir.isIncremental)
-    println(ir.getChunkNames)
+    log.info("Index Reader created")
+    log.debug(ir.getIndexId)
+    log.debug(ir.getPublishedTimestamp.toString)
+    log.debug(ir.isIncremental.toString)
+    log.debug(ir.getChunkNames.toString)
 
     lazy val cr = ir.iterator().next().iterator()
 
     def read() : Option[MavenIdentifier] = {
       cr.hasNext() match {
         case true => {
-          println("Producing a Maven Identifier")
+          log.debug("Producing a Maven Identifier")
           val kvp = cr.next()
           val identifier = kvp.get("u").split("|".toCharArray)
           Some(MavenIdentifier(base.toString, identifier(0), identifier(1), identifier(2)))
