@@ -6,6 +6,8 @@ import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
 import akka.pattern.ask
+import akka.util.Timeout
+import scala.concurrent.duration._
 
 class PreprocessingDispatchActor(configuration : Configuration) extends Actor with ActorLogging {
   override def receive: Receive = {
@@ -15,6 +17,7 @@ class PreprocessingDispatchActor(configuration : Configuration) extends Actor wi
       elasticActor forward m
 
       // Transform maven identifier into maven artifact
+      implicit val timeout = Timeout(5.seconds)
       val downloadActor = context.actorOf(MavenDownloadActor.props)
       val mavenArtifact = downloadActor ? m
 
