@@ -49,7 +49,9 @@ libraryDependencies ++= Seq(
   "com.sksamuel.elastic4s" %% "elastic4s-embedded" % elastic4sVersion % "test"
 )
 
-val opalVersion = "1.0.0"
+resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
+
+val opalVersion = "1.1.0-SNAPSHOT"
 libraryDependencies ++= Seq(
   "de.opal-project" % "common_2.12" % opalVersion,
   "de.opal-project" % "opal-developer-tools_2.12" % opalVersion
