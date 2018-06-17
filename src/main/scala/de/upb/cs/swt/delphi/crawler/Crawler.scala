@@ -6,6 +6,8 @@ import com.sksamuel.elastic4s.http.HttpClient
 import de.upb.cs.swt.delphi.crawler.control.Server
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor.Start
+import de.upb.cs.swt.delphi.crawler.preprocessing.PreprocessingDispatchActor
+import de.upb.cs.swt.delphi.crawler.processing.ProcessingDispatchActor
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
 
 import scala.concurrent.Await
@@ -42,8 +44,9 @@ object Crawler extends App with AppLogging {
 
   new Server(configuration.controlServerPort).start()
 
-  val elasticActor = system.actorOf(ElasticActor.props(HttpClient(configuration.elasticsearchClientUri)))
-  val mavenCrawlActor = system.actorOf(MavenCrawlActor.props(elasticActor, configuration))
+  val processingDispatchActor = system.actorOf(ProcessingDispatchActor.props)
+  val preprocessingDispatchActor = system.actorOf(PreprocessingDispatchActor.props(configuration, processingDispatchActor))
+  val mavenCrawlActor = system.actorOf(MavenCrawlActor.props(configuration, preprocessingDispatchActor))
 
   mavenCrawlActor ! Start
 

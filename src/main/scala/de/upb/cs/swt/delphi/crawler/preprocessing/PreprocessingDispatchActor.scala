@@ -1,15 +1,16 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import com.sksamuel.elastic4s.http.HttpClient
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
 import akka.pattern.ask
 import akka.util.Timeout
+
 import scala.concurrent.duration._
 
-class PreprocessingDispatchActor(configuration : Configuration) extends Actor with ActorLogging {
+class PreprocessingDispatchActor(configuration : Configuration, nextStep : ActorRef) extends Actor with ActorLogging {
   override def receive: Receive = {
     case m : MavenIdentifier => {
       // Start creation of base record
@@ -31,5 +32,5 @@ class PreprocessingDispatchActor(configuration : Configuration) extends Actor wi
 }
 
 object PreprocessingDispatchActor {
-  def props(configuration: Configuration) = Props(new PreprocessingDispatchActor(configuration))
+  def props(configuration: Configuration, nextStep : ActorRef) = Props(new PreprocessingDispatchActor(configuration, nextStep))
 }

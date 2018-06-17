@@ -9,8 +9,8 @@ import de.upb.cs.swt.delphi.crawler.storage.ArtifactExistsQuery
 
 import scala.collection.mutable
 
-class MavenCrawlActor(nextStep : ActorRef,
-                     configuration: Configuration)  extends Actor
+class MavenCrawlActor(configuration: Configuration, nextStep : ActorRef)
+                                                    extends Actor
                                                     with ActorLogging
                                                     with IndexProcessing
                                                     with ArtifactExistsQuery {
@@ -39,7 +39,7 @@ class MavenCrawlActor(nextStep : ActorRef,
 }
 
 object MavenCrawlActor {
-  def props(storageActor : ActorRef, configuration: Configuration) = Props(new MavenCrawlActor(storageActor, configuration))
+  def props(configuration: Configuration, nextStep : ActorRef) = Props(new MavenCrawlActor(configuration, nextStep))
 
   case object Start
 }
