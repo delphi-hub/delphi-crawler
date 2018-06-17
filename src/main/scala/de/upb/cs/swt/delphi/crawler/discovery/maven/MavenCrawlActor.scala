@@ -24,7 +24,7 @@ class MavenCrawlActor(configuration: Configuration, nextStep : ActorRef)
       implicit val httpClient = HttpClient(configuration.elasticsearchClientUri)
       implicit val logger = log
 
-      createSource
+      createSource(configuration.mavenRepoBase)
         .throttle(configuration.throttle.element, configuration.throttle.per, configuration.throttle.maxBurst, configuration.throttle.mode)
         .filter(m => {
           val before = !seen.contains(m)

@@ -1,6 +1,6 @@
 package de.upb.cs.swt.delphi.crawler.discovery.maven
 
-import java.net.URL
+import java.net.{URI, URL}
 
 import akka.NotUsed
 import akka.event.LoggingAdapter
@@ -12,12 +12,10 @@ import scala.util.{Failure, Success, Try}
 
 trait IndexProcessing {
 
-  def createSource(implicit log : LoggingAdapter) : Source[MavenIdentifier, NotUsed] = {
-    val base = new URL("http://repo1.maven.org/maven2/")
-
+  def createSource(base : URI)(implicit log : LoggingAdapter) : Source[MavenIdentifier, NotUsed] = {
     log.info("Creating source")
 
-    val ir = Try(new MavenIndexReader(base))
+    val ir = Try(new MavenIndexReader(base.toURL))
     ir match {
       case Success(indexReader) => {
         Source.unfoldResource[MavenIdentifier, MavenIndexReader](
