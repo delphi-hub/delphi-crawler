@@ -1,16 +1,15 @@
 package de.upb.cs.swt.delphi.crawler.discovery.maven
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import akka.stream.{ActorMaterializer, ThrottleMode}
+import akka.stream.ActorMaterializer
 import com.sksamuel.elastic4s.http.HttpClient
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor.Start
 import de.upb.cs.swt.delphi.crawler.storage.ArtifactExistsQuery
 
 import scala.collection.mutable
-import scala.concurrent.duration._
 
-class MavenCrawlActor(storageActor : ActorRef,
+class MavenCrawlActor(nextStep : ActorRef,
                      configuration: Configuration)  extends Actor
                                                     with ActorLogging
                                                     with IndexProcessing
@@ -20,17 +19,21 @@ class MavenCrawlActor(storageActor : ActorRef,
   override def receive: Receive = {
     case Start => {
       log.info("Starting Maven discovery process...")
+
       implicit val materializer = ActorMaterializer()
       implicit val httpClient = HttpClient(configuration.elasticsearchClientUri)
       implicit val logger = log
+
       createSource
-        .throttle(10, 10 millis, 10, ThrottleMode.shaping)
-        .filter(!seen.contains(_)) // local seen cache to compensate for lags
-        .map{m => seen.add(m); m}
-        .filter(m => !exists(m))
-        .take(50) // limit for now
-        .runForeach(m => storageActor ! m) // TODO maybe formulate initial load as stream components and not as actors?
-        //.to(Sink.actorRef(storageActor, Status.Success))  // For some reason this does not pull data
+        .throttle(configuration.throttle.element, configuration.throttle.per, configuration.throttle.maxBurst, configuration.throttle.mode)
+        .filter(m => {
+          val before = !seen.contains(m)
+          if (!before) seen.add(m)
+          before
+        }) // local seen cache to compensate for lags
+        .filter(m => !exists(m))  // ask elastic
+        .take(configuration.limit) // limit for now
+        .runForeach(m => nextStep ! m) // TODO: instead as runForeach we might consider using the next step actor as a sink
     }
   }
 }
