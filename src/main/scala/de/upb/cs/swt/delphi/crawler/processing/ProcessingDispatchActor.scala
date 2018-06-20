@@ -7,8 +7,8 @@ class ProcessingDispatchActor extends Actor with ActorLogging {
   override def receive: Receive = {
     case m : MavenArtifact => {
       // start hermes processing
-      val hermesActor = context.actorOf(HermesActor.props)
-      hermesActor forward m
+      //val hermesActor = context.actorOf(HermesActor.props)
+      //hermesActor forward m
 
       // trigger further processing
     }

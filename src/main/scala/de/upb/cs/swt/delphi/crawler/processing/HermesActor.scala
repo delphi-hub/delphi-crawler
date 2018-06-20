@@ -21,6 +21,7 @@ class HermesActor extends Actor with ActorLogging {
           self ! ProcessResults(i, Hermes.featureMatrix.head)
         }
       }
+
       // Fake some kind of config file here.
       Hermes.initialize(new File(""))
       Hermes.analyzeCorpus(runAsDaemons = false)

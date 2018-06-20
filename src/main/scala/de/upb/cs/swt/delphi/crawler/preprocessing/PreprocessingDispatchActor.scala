@@ -13,17 +13,18 @@ import scala.concurrent.duration._
 class PreprocessingDispatchActor(configuration : Configuration, nextStep : ActorRef) extends Actor with ActorLogging {
   override def receive: Receive = {
     case m : MavenIdentifier => {
+      
       // Start creation of base record
       val elasticActor = context.actorOf(ElasticActor.props(HttpClient(configuration.elasticsearchClientUri)))
       elasticActor forward m
 
       // Transform maven identifier into maven artifact
-      implicit val timeout = Timeout(5.seconds)
+      /*implicit val timeout = Timeout(5.seconds)
       val downloadActor = context.actorOf(MavenDownloadActor.props)
       val mavenArtifact = downloadActor ? m
-
+      */
       // After transformation push to processing dispatch
-      nextStep ! mavenArtifact
+      //nextStep ! mavenArtifact
     }
 
 
