@@ -51,7 +51,7 @@ libraryDependencies ++= Seq(
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
-val opalVersion = "1.1.0-SNAPSHOT"
+val opalVersion = "1.0.0"
 libraryDependencies ++= Seq(
   "de.opal-project" % "common_2.12" % opalVersion,
   "de.opal-project" % "opal-developer-tools_2.12" % opalVersion
