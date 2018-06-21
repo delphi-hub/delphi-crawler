@@ -27,7 +27,7 @@ class MavenDownloader(identifier: MavenIdentifier) {
     identifier.artifactId + "-" + identifier.version + ".jar"
 
   def downloadJar(): JarFile = {
-    JarFile(pomResource.read())
+    JarFile(jarResource.read())
   }
 
   def downloadPom(): PomFile= {

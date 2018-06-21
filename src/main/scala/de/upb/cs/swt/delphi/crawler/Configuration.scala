@@ -14,6 +14,8 @@ class Configuration  {
   val throttle : Throttle = Throttle(10, 10 millis, 10, ThrottleMode.shaping)
   val limit : Int = 50
 
+  val tempFileStorage : String = "temp/"
+
   case class Throttle(element : Int, per : FiniteDuration, maxBurst : Int, mode : ThrottleMode)
 }
 

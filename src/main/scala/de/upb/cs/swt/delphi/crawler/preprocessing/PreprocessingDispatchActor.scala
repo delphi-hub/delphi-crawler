@@ -7,6 +7,7 @@ import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
 import akka.pattern.ask
 import akka.util.Timeout
+import de.upb.cs.swt.delphi.crawler.processing.CallGraphActor
 
 import scala.concurrent.duration._
 
@@ -17,6 +18,10 @@ class PreprocessingDispatchActor(configuration : Configuration, nextStep : Actor
       // Start creation of base record
       val elasticActor = context.actorOf(ElasticActor.props(HttpClient(configuration.elasticsearchClientUri)))
       elasticActor forward m
+
+      // Create call graphs for each project
+      //val callGraphActor = context.actorOf(CallGraphActor.props(configuration))
+      //callGraphActor ! m
 
       // Transform maven identifier into maven artifact
       /*implicit val timeout = Timeout(5.seconds)

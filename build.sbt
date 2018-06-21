@@ -72,3 +72,5 @@ libraryDependencies ++= Seq(
 
 libraryDependencies += "org.apache.maven.indexer" % "indexer-reader" % "6.0.0"
 libraryDependencies += "org.apache.maven.indexer" % "indexer-core" % "6.0.0"
+
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
