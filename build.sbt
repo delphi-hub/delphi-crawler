@@ -10,6 +10,7 @@ lazy val crawler = (project in file(".")).
   settings (
     dockerBaseImage := "openjdk:jre-alpine"
   ).
+  enablePlugins(ScalastylePlugin).
   enablePlugins(AshScriptPlugin).
   enablePlugins(BuildInfoPlugin).
   settings(
@@ -72,3 +73,10 @@ libraryDependencies ++= Seq(
 
 libraryDependencies += "org.apache.maven.indexer" % "indexer-reader" % "6.0.0"
 libraryDependencies += "org.apache.maven.indexer" % "indexer-core" % "6.0.0"
+
+lazy val scalastyleTask = taskKey[Unit]("scalastyleTask")
+scalastyleTask :={
+  scalastyle.in(Compile).toTask("").value
+  scalastyle.in(Test).toTask("").value
+}
+(test in Test) := ((test in Test) dependsOn scalastyleTask).value
