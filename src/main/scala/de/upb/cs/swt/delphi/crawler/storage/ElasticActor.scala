@@ -14,7 +14,7 @@ class ElasticActor(client: HttpClient) extends Actor with ActorLogging {
     case m : MavenIdentifier => {
       log.info("Pushing new maven identifier to elastic: [{}]", m)
       client.execute {
-        indexInto("delphi" / "project").fields( "name" -> (m.groupId +":"+ m.artifactId +":"+ m.version),
+        indexInto("delphi" / "project").fields( "name" -> m.toString,
                                                      "source" -> "Maven",
                                                      "identifier" -> Map(
                                                        "groupId" -> m.groupId,
