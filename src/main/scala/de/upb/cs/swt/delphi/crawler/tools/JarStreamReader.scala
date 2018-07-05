@@ -9,7 +9,9 @@ import scala.collection.mutable
   * Unpacks a stream containing a JAR file in memory.
   * The input stream can be constructed from a file or from a HTTP resource.
   *
+  * @author Ben Hermann
   * @param stream A stream containing a jar file.
+  *
   */
 class JarStreamReader(stream: InputStream) {
 

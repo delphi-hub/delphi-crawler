@@ -6,6 +6,9 @@ import org.scalatest.{FlatSpec, Matchers}
 
 import scala.reflect.io.File
 
+/**
+  * @author Ben Hermann
+  */
 class ClassStreamReaderTest extends FlatSpec with Matchers {
   "A ClassStreamReader" should "be able to reify classes from sootconfig-1.1" in {
     val fis = File("src/test/resources/sootconfig-1.1.jar").inputStream()

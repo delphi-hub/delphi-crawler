@@ -7,6 +7,7 @@ import org.opalj.br.analyses.Project
 
 /**
   * Reifies Java classes from a list of (name, inputStream) tuples.
+  * @author Ben Hermann
   */
 trait ClassStreamReader {
   /**

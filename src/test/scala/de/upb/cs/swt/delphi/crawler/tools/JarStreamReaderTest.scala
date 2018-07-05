@@ -15,6 +15,9 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.reflect.io.File
 import scala.util.Random
 
+/**
+  * @author Ben Hermann
+  */
 class JarStreamReaderTest extends FlatSpec with Matchers {
   "A JarStreamReader" should "be able to read from a file input stream" in {
     val fis = File("src/test/resources/sootconfig-1.1.jar").inputStream()
