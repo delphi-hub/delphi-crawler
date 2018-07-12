@@ -16,6 +16,9 @@ class Configuration  {
 
   val tempFileStorage : String = "temp/"
 
+  val elasticActorPoolSize : Int = 4
+  val callGraphStreamPoolSize : Int = 4
+
   case class Throttle(element : Int, per : FiniteDuration, maxBurst : Int, mode : ThrottleMode)
 }
 

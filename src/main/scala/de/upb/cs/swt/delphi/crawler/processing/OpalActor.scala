@@ -20,6 +20,7 @@ class OpalActor(configuration: Configuration) extends Actor with ActorLogging{
     case JarFile(is) => {   //TODO: Remove this before this goes to production - ideally when we can pass IS to OPAL
       val dummyFile: File = new File(configuration.tempFileStorage + "testFile-" + System.nanoTime() + ".jar")
       FileUtils.copyInputStreamToFile(is, dummyFile)
+      is.close()
 
       findCalls(dummyFile)
 
