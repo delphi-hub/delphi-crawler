@@ -29,8 +29,8 @@ trait ElasticIndexMaintenance extends AppLogging  {
     )
 
     val f = client.execute {
-      createIndex("delphi") mappings (
-        mapping("project") as (
+      createIndex(delphi) mappings (
+        mapping(project) as (
           keywordField("name"),
           keywordField("source"),
           keywordField("language"),
@@ -51,7 +51,7 @@ trait ElasticIndexMaintenance extends AppLogging  {
 
     //Increases maximum number of nested fields
     client.execute{
-      updateSettings("delphi").set(
+      updateSettings(delphi).set(
         "index.mapping.nested_fields.limit", "250"
       )
     }.await

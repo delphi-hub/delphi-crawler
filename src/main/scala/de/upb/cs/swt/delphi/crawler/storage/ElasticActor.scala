@@ -6,7 +6,6 @@ import com.sksamuel.elastic4s.http.HttpClient
 import de.upb.cs.swt.delphi.crawler.Identifier
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.storage.ElasticActor.Push
 
 class ElasticActor(client: HttpClient) extends Actor with ActorLogging {
 
@@ -14,7 +13,7 @@ class ElasticActor(client: HttpClient) extends Actor with ActorLogging {
     case m : MavenIdentifier => {
       log.info("Pushing new maven identifier to elastic: [{}]", m)
       client.execute {
-        indexInto("delphi" / "project").fields( "name" -> (m.groupId +":"+ m.artifactId +":"+ m.version),
+        indexInto(delphiProjectType).fields( "name" -> m.toUniqueString,
                                                      "source" -> "Maven",
                                                      "identifier" -> Map(
                                                        "groupId" -> m.groupId,
@@ -25,7 +24,7 @@ class ElasticActor(client: HttpClient) extends Actor with ActorLogging {
     case g : GitIdentifier => {
       log.info("Pushing new git identifier to elastic: [{}]", g)
       client.execute {
-        indexInto("delphi" / "project").fields("name" -> (g.repoUrl +"/"+ g.commitId),
+        indexInto(delphiProjectType).fields("name" -> (g.repoUrl +"/"+ g.commitId),
                                                      "source" -> "Git",
                                                      "identifier" -> Map(
                                                        "repoUrl" -> g.repoUrl,
