@@ -27,13 +27,17 @@ class MavenCrawlActor(configuration: Configuration, nextStep : ActorRef)
       createSource(configuration.mavenRepoBase)
         .throttle(configuration.throttle.element, configuration.throttle.per, configuration.throttle.maxBurst, configuration.throttle.mode)
         .filter(m => {
-          val before = !seen.contains(m)
+          val before = seen.contains(m)
           if (!before) seen.add(m)
-          before
+          !before
         }) // local seen cache to compensate for lags
         .filter(m => !exists(m))  // ask elastic
         .take(configuration.limit) // limit for now
-        .runForeach(m => nextStep ! m) // TODO: instead as runForeach we might consider using the next step actor as a sink
+        .runForeach(m => {
+          nextStep ! m
+        } ) // TODO: instead as runForeach we might consider using the next step actor as a sink
+
+
     }
   }
 }
