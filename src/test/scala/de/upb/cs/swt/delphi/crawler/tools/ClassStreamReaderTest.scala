@@ -31,5 +31,6 @@ class ClassStreamReaderTest extends FlatSpec with Matchers {
 
     p shouldBe a [Project[_]]
     p.projectClassFilesCount should be (23)
+    p.allMethodsWithBody.size should not be (0)
   }
 }

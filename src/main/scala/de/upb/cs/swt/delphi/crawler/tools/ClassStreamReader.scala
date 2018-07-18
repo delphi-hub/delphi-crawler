@@ -20,7 +20,7 @@ trait ClassStreamReader {
     */
   def reifyClasses(jarEntryStream: Traversable[(String, InputStream)]): Traversable[ClassFile] = {
     jarEntryStream.filter(e => e._1.endsWith(".class"))
-      .flatMap(e => Project.JavaLibraryClassFileReader.ClassFile(() => e._2))
+      .flatMap(e => Project.JavaClassFileReader().ClassFile(() => e._2))
   }
 
   /**
