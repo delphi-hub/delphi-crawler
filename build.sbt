@@ -72,3 +72,7 @@ libraryDependencies ++= Seq(
 
 libraryDependencies += "org.apache.maven.indexer" % "indexer-reader" % "6.0.0"
 libraryDependencies += "org.apache.maven.indexer" % "indexer-core" % "6.0.0"
+
+// Pinning specific libraries b/c of vulnerabilities
+libraryDependencies += "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.6"
+libraryDependencies += "com.google.guava" % "guava" % "25.1-jre"
