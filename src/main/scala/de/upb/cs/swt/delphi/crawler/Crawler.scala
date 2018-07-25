@@ -9,6 +9,8 @@ import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor.Start
 import de.upb.cs.swt.delphi.crawler.preprocessing.PreprocessingDispatchActor
 import de.upb.cs.swt.delphi.crawler.processing.ProcessingDispatchActor
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
+import de.upb.cs.swt.delphi.crawler.tools.OPALLogAdapter
+import org.opalj.log.{GlobalLogContext, OPALLogger}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -22,6 +24,8 @@ object Crawler extends App with AppLogging {
 
   implicit val system : ActorSystem = ActorSystem("delphi-crawler")
   implicit val materializer = ActorMaterializer()
+
+  OPALLogger.updateLogger(GlobalLogContext, OPALLogAdapter)
 
   sys.addShutdownHook(() => {
     log.warning("Received shutdown signal.")
