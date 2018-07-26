@@ -66,11 +66,11 @@ trait ClassStreamReader {
   def createProject(source: URL, jarInputStream: JarInputStream): Project[URL] = {
     val config : Config = org.opalj.br.BaseConfig
 
-    val projectClasses: Traversable[(ClassFile, URL)] = readClassFiles(jarInputStream).map(c => (c._1, source))
+    val projectClasses: Traversable[(ClassFile, URL)] = readClassFiles(jarInputStream).map { case (classFile, _) => (classFile, source) }
     val libraryClasses: Traversable[(ClassFile, URL)] =
       readClassFiles(new JarInputStream
                             (new FileInputStream(org.opalj.bytecode.RTJar)), Project.JavaLibraryClassFileReader)
-        .map(c => (c._1, org.opalj.bytecode.RTJar.toURI.toURL))
+        .map{ case (classFile, _) => (classFile, org.opalj.bytecode.RTJar.toURI.toURL) }
 
 
     Project(projectClasses, libraryClasses, true, Traversable.empty)(config, OPALLogAdapter)
