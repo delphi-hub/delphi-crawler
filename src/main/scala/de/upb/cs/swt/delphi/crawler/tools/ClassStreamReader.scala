@@ -26,9 +26,9 @@ trait ClassStreamReader {
     * @param in An input stream of a JAR file
     * @return A list of named reified class files including bodies
     */
-  def readClassFiles(in: ⇒ JarInputStream,
+  def readClassFiles(in: => JarInputStream,
                      reader : Java8LibraryFramework = Project.JavaClassFileReader(GlobalLogContext, org.opalj.br.BaseConfig))
-                  : List[(ClassFile, String)] = org.opalj.io.process(in) { in ⇒
+                  : List[(ClassFile, String)] = org.opalj.io.process(in) { in =>
     var je: JarEntry = in.getNextJarEntry()
 
     var futures: List[Future[List[(ClassFile, String)]]] = Nil
@@ -48,13 +48,13 @@ trait ClassStreamReader {
         }
         futures ::= Future[List[(ClassFile, String)]] {
           val cfs = reader.ClassFile(new DataInputStream(new ByteArrayInputStream(entryBytes)))
-          cfs map { cf ⇒ (cf, entryName) }
+          cfs map { cf => (cf, entryName) }
         }(org.opalj.concurrent.OPALExecutionContext)
       }
       je = in.getNextJarEntry()
     }
 
-    futures.flatMap(f ⇒ Await.result(f, Duration.Inf))
+    futures.flatMap(f => Await.result(f, Duration.Inf))
   }
 
   /**
