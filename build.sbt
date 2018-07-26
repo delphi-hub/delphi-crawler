@@ -21,7 +21,7 @@ mainClass in (Compile, run) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
 mainClass in (Compile, packageBin) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
 mainClass in Compile :=  Some("de.upb.cs.swt.delphi.crawler.Crawler")
 
-val akkaVersion = "2.4.20"
+val akkaVersion = "2.5.14"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
@@ -29,12 +29,12 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream" % akkaVersion,
   "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-  "com.typesafe.akka" %% "akka-http" % "10.0.11"
+  "com.typesafe.akka" %% "akka-http" % "10.1.3"
 )
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
 
-val elastic4sVersion = "6.2.8"
+val elastic4sVersion = "6.3.0"
 libraryDependencies ++= Seq(
   "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion,
 
@@ -76,6 +76,5 @@ libraryDependencies += "org.apache.maven.indexer" % "indexer-core" % "6.0.0"
 // Pinning secure versions of insecure transitive libraryDependencies
 // Please update when updating dependencies above (including Play plugin)
 libraryDependencies ++= Seq(
-    "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.6",
     "com.google.guava" % "guava" % "25.1-jre"
 )

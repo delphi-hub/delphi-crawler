@@ -1,7 +1,7 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import com.sksamuel.elastic4s.http.HttpClient
+import com.sksamuel.elastic4s.http.{ElasticClient, HttpClient}
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
@@ -15,7 +15,7 @@ class PreprocessingDispatchActor(configuration : Configuration, nextStep : Actor
     case m : MavenIdentifier => {
       
       // Start creation of base record
-      val elasticActor = context.actorOf(ElasticActor.props(HttpClient(configuration.elasticsearchClientUri)))
+      val elasticActor = context.actorOf(ElasticActor.props(ElasticClient(configuration.elasticsearchClientUri)))
       elasticActor forward m
 
       // Transform maven identifier into maven artifact
