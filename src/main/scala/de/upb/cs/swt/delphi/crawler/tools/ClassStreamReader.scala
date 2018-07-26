@@ -7,7 +7,8 @@ import java.util.jar.{JarEntry, JarInputStream}
 import com.typesafe.config.Config
 import org.opalj.br.ClassFile
 import org.opalj.br.analyses.Project
-import org.opalj.log.{GlobalLogContext, OPALLogger}
+import org.opalj.br.reader.Java8LibraryFramework
+import org.opalj.log.GlobalLogContext
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
@@ -25,9 +26,9 @@ trait ClassStreamReader {
     * @param in An input stream of a JAR file
     * @return A list of named reified class files including bodies
     */
-  def readClassFiles(in: ⇒ JarInputStream): List[(ClassFile, String)] = org.opalj.io.process(in) { in ⇒
-    val config : Config = org.opalj.br.BaseConfig
-    val reader = Project.JavaClassFileReader(GlobalLogContext, config)
+  def readClassFiles(in: => JarInputStream,
+                     reader : Java8LibraryFramework = Project.JavaClassFileReader(GlobalLogContext, org.opalj.br.BaseConfig))
+                  : List[(ClassFile, String)] = org.opalj.io.process(in) { in =>
     var je: JarEntry = in.getNextJarEntry()
 
     var futures: List[Future[List[(ClassFile, String)]]] = Nil
@@ -47,13 +48,13 @@ trait ClassStreamReader {
         }
         futures ::= Future[List[(ClassFile, String)]] {
           val cfs = reader.ClassFile(new DataInputStream(new ByteArrayInputStream(entryBytes)))
-          cfs map { cf ⇒ (cf, entryName) }
+          cfs map { cf => (cf, entryName) }
         }(org.opalj.concurrent.OPALExecutionContext)
       }
       je = in.getNextJarEntry()
     }
 
-    futures.flatMap(f ⇒ Await.result(f, Duration.Inf))
+    futures.flatMap(f => Await.result(f, Duration.Inf))
   }
 
   /**
@@ -65,10 +66,11 @@ trait ClassStreamReader {
   def createProject(source: URL, jarInputStream: JarInputStream): Project[URL] = {
     val config : Config = org.opalj.br.BaseConfig
 
-    val projectClasses: Traversable[(ClassFile, URL)] = readClassFiles(jarInputStream).map(c => (c._1, source))
+    val projectClasses: Traversable[(ClassFile, URL)] = readClassFiles(jarInputStream).map { case (classFile, _) => (classFile, source) }
     val libraryClasses: Traversable[(ClassFile, URL)] =
-      readClassFiles(new JarInputStream(new FileInputStream(org.opalj.bytecode.RTJar)))
-        .map(c => (c._1, org.opalj.bytecode.RTJar.toURI.toURL))
+      readClassFiles(new JarInputStream
+                            (new FileInputStream(org.opalj.bytecode.RTJar)), Project.JavaLibraryClassFileReader)
+        .map{ case (classFile, _) => (classFile, org.opalj.bytecode.RTJar.toURI.toURL) }
 
 
     Project(projectClasses, libraryClasses, true, Traversable.empty)(config, OPALLogAdapter)

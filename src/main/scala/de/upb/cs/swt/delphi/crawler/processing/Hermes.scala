@@ -7,7 +7,7 @@ import org.opalj.hermes.HermesCore
   */
 object Hermes extends HermesCore {
 
-  override def updateProjectData(f: ⇒ Unit): Unit = Hermes.synchronized { f }
+  override def updateProjectData(f: => Unit): Unit = Hermes.synchronized { f }
 
-  override def reportProgress(f: ⇒ Double): Unit = Hermes.synchronized { f }
+  override def reportProgress(f: => Double): Unit = Hermes.synchronized { f }
 }

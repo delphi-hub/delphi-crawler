@@ -2,6 +2,7 @@ package de.upb.cs.swt.delphi.crawler.tools
 
 import java.io.BufferedInputStream
 import java.net.{HttpURLConnection, URL}
+import java.security.SecureRandom
 import java.util.jar.JarInputStream
 
 import akka.actor.ActorSystem
@@ -51,7 +52,7 @@ class ClassStreamReaderTest extends FlatSpec with Matchers with BeforeAndAfter {
     implicit val materializer: ActorMaterializer = ActorMaterializer()
     implicit val ec : ExecutionContext = system.dispatcher
 
-    val port = Random.nextInt(10000) + 10000
+    val port = new SecureRandom().nextInt(10000) + 10000
 
     val f = Http().bindAndHandle(Route.handlerFlow(route), "0.0.0.0", port )
 

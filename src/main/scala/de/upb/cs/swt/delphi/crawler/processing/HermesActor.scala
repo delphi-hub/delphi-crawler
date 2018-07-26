@@ -15,7 +15,7 @@ class HermesActor extends Actor with ActorLogging {
     case Analyze(i : Identifier) => {
       log.info("Starting Hermes analysis for {}", i)
 
-      Hermes.analysesFinished onChange { (_, _, isFinished) ⇒
+      Hermes.analysesFinished onChange { (_, _, isFinished) =>
         if (isFinished) {
           self ! ProcessStatistics(i, Hermes.featureMatrix.head.projectConfiguration.statistics)
           self ! ProcessResults(i, Hermes.featureMatrix.head)
