@@ -7,7 +7,8 @@ import java.util.jar.{JarEntry, JarInputStream}
 import com.typesafe.config.Config
 import org.opalj.br.ClassFile
 import org.opalj.br.analyses.Project
-import org.opalj.log.{GlobalLogContext, OPALLogger}
+import org.opalj.br.reader.Java8LibraryFramework
+import org.opalj.log.GlobalLogContext
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
@@ -25,9 +26,9 @@ trait ClassStreamReader {
     * @param in An input stream of a JAR file
     * @return A list of named reified class files including bodies
     */
-  def readClassFiles(in: ⇒ JarInputStream): List[(ClassFile, String)] = org.opalj.io.process(in) { in ⇒
-    val config : Config = org.opalj.br.BaseConfig
-    val reader = Project.JavaClassFileReader(GlobalLogContext, config)
+  def readClassFiles(in: ⇒ JarInputStream,
+                     reader : Java8LibraryFramework = Project.JavaClassFileReader(GlobalLogContext, org.opalj.br.BaseConfig))
+                  : List[(ClassFile, String)] = org.opalj.io.process(in) { in ⇒
     var je: JarEntry = in.getNextJarEntry()
 
     var futures: List[Future[List[(ClassFile, String)]]] = Nil
@@ -67,7 +68,8 @@ trait ClassStreamReader {
 
     val projectClasses: Traversable[(ClassFile, URL)] = readClassFiles(jarInputStream).map(c => (c._1, source))
     val libraryClasses: Traversable[(ClassFile, URL)] =
-      readClassFiles(new JarInputStream(new FileInputStream(org.opalj.bytecode.RTJar)))
+      readClassFiles(new JarInputStream
+                            (new FileInputStream(org.opalj.bytecode.RTJar)), Project.JavaLibraryClassFileReader)
         .map(c => (c._1, org.opalj.bytecode.RTJar.toURI.toURL))
 
 
