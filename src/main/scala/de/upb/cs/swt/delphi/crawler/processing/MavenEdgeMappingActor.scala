@@ -1,13 +1,15 @@
 package de.upb.cs.swt.delphi.crawler.processing
 
-import java.io.File
+import java.io.{BufferedInputStream, File}
 import java.net.URL
+import java.util.jar.JarInputStream
 
 import akka.actor.{Actor, ActorLogging, Props}
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.preprocessing.MavenDownloader
 import de.upb.cs.swt.delphi.crawler.processing.CallGraphStream.{MappedEdge, unresMCtoStr}
+import de.upb.cs.swt.delphi.crawler.tools.ClassStreamReader
 import org.apache.commons.io.FileUtils
 import org.opalj.ai.analyses.cg.UnresolvedMethodCall
 import org.opalj.br.analyses.Project
@@ -15,7 +17,11 @@ import org.opalj.br.analyses.Project
 class MavenEdgeMappingActor(configuration: Configuration) extends Actor with ActorLogging{
   override def receive: Receive = {
     case (mx: Set[UnresolvedMethodCall], ix: Set[MavenIdentifier]) => {
-      sender() ! matchEdges(mx, ix)
+      try {
+        sender() ! matchEdges(mx, ix)
+      } catch {
+        case e: Exception => log.warning("Maven mapper threw exception " + e)
+      }
     }
   }
 
@@ -32,7 +38,7 @@ class MavenEdgeMappingActor(configuration: Configuration) extends Actor with Act
         } else {
           try {
             val identifier: MavenIdentifier = mavenList.head
-            val library: Project[URL] = loadProject(identifier)
+            val library = loadProject(identifier)
             val splitSet = edgeSet.partition(m => library.resolveMethodReference(m.calleeClass, m.calleeName, m.calleeDescriptor).isDefined)
             val mappedEdges = splitSet._1.map(m => MappedEdge(identifier, unresMCtoStr(m)))
             mappedEdges ++ edgeSearch(splitSet._2, mavenList.tail)
@@ -40,19 +46,17 @@ class MavenEdgeMappingActor(configuration: Configuration) extends Actor with Act
             case e: java.io.FileNotFoundException =>
               log.info("The Maven coordinates '{}' (listed as a dependency) are invalid", mavenList.head.toString)
               edgeSearch(edgeSet, mavenList.tail)
+            case e: java.lang.IllegalArgumentException =>
+              log.info("The Maven coordinates '{}' (listed as a dependency) could not be interpreted", mavenList.head.toString)
+              edgeSearch(edgeSet, mavenList.tail)
           }
         }
       }
     }
 
-    def loadProject(identifier: MavenIdentifier): Project[URL] = {
+    def loadProject(identifier: MavenIdentifier) = {
       val jarFile = new MavenDownloader(identifier).downloadJar()
-      val dummyFile = new File(configuration.tempFileStorage + identifier.toString + ".jar")
-      FileUtils.copyInputStreamToFile(jarFile.is, dummyFile)
-      jarFile.is.close()
-      val project = Project(dummyFile)
-
-      dummyFile.delete()
+      val project = new ClassStreamReader {}.createProject(jarFile.url, new JarInputStream(jarFile.is))
       project
     }
 

@@ -31,8 +31,12 @@ class CallGraphStream(configuration: Configuration) extends Actor with ActorLogg
       graphActor forward m
   }
 
-  implicit val timeout: Timeout = 60 seconds
-  implicit val materializer: Materializer = ActorMaterializer()
+  implicit val timeout: Timeout = 120 seconds
+  val decider: Supervision.Decider = {
+    case e: Exception => {log.warning("Call graph stream threw exception " + e); Supervision.Resume}
+    case _ => {log.warning("Call graph stream threw unknown throwable"); Supervision.Resume}
+  }
+  implicit val materializer: Materializer = ActorMaterializer(ActorMaterializerSettings(context.system).withSupervisionStrategy(decider))
   implicit val parallelism = 1
 
   val pomReader: MavenXpp3Reader = new MavenXpp3Reader()
@@ -118,20 +122,46 @@ class CallGraphStream(configuration: Configuration) extends Actor with ActorLogg
     } catch {
       case e: FileNotFoundException => {
         log.info("{} not mapped, missing POM file", mavenIdentifier.toString)
-        (PomFile(null), (JarFile(null), MavenIdentifier(null, null, null, null)))  //There might be a more elegant way of doing this
+        (PomFile(null), (JarFile(null, null), MavenIdentifier(null, null, null, null)))  //There might be a more elegant way of doing this
       }
     }
   }
 
   def mavenDependencyConverter(pomFile: PomFile): Set[MavenIdentifier] = {
-    val pomSet = pomReader.read(pomFile.is).getDependencies()
-    .asScala.toSet[Dependency].map(d =>
+    val pomObj = pomReader.read(pomFile.is)
+
+    def resolveProperty(str: String) = {
+      if(str == null || !str.startsWith("$")) {
+        str
+      } else {
+        val extractedVar = str.drop(2).dropRight(1)
+        val splitVar = extractedVar.split("\\.", 2)
+        if(splitVar(0) == "project" || splitVar(0) == "pom"){
+          val evaluatedVar = splitVar(1) match {
+            case "groupId" => pomObj.getGroupId
+            case "artifactId" => pomObj.getArtifactId
+            case "version" => pomObj.getVersion
+            case _ => null
+          }
+          evaluatedVar
+        } else {
+          val evaluatedVar = pomObj.getProperties.getProperty(extractedVar)
+          evaluatedVar
+        }
+      }
+    }
+
+    val pomSet = pomObj.getDependencies()
+    .asScala.toSet[Dependency].map(d => {
       MavenIdentifier(
         configuration.mavenRepoBase.toString(),
-        d.getGroupId(),
-        d.getArtifactId(),
-        d.getVersion()
-      ))
+        resolveProperty(d.getGroupId()),
+        resolveProperty(d.getArtifactId()),
+        resolveProperty(d.getVersion())
+      )
+    }).filter(
+      m => !(m.version == null || m.groupId == null || m.artifactId == null)
+    )
     pomFile.is.close()
     pomSet
   }

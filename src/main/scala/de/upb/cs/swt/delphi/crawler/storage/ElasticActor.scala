@@ -3,12 +3,12 @@ package de.upb.cs.swt.delphi.crawler.storage
 import akka.actor.{Actor, ActorLogging, Props}
 import com.sksamuel.elastic4s.ElasticsearchClientUri
 import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.http.{ElasticClient, HttpClient}
+import com.sksamuel.elastic4s.http.HttpClient
 import de.upb.cs.swt.delphi.crawler.Identifier
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 
-class ElasticActor(client: ElasticClient) extends Actor with ActorLogging {
+class ElasticActor(client: HttpClient) extends Actor with ActorLogging {
 
   override def receive = {
     case m : MavenIdentifier => {
@@ -37,7 +37,7 @@ class ElasticActor(client: ElasticClient) extends Actor with ActorLogging {
 }
 
 object ElasticActor {
-  def props(client: ElasticClient): Props = Props(new ElasticActor(client))
+  def props(client: HttpClient): Props = Props(new ElasticActor(client))
 
   case class Push(identity: Identifier)
 

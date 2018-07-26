@@ -1,6 +1,6 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
-import java.net.URI
+import java.net.{URI, URL}
 
 import de.upb.cs.swt.delphi.crawler.discovery.maven.{HttpResourceHandler, MavenIdentifier}
 
@@ -19,6 +19,8 @@ class MavenDownloader(identifier: MavenIdentifier) {
       .resolve(identifier.artifactId + "/")
       .resolve(identifier.version + "/")
 
+  def constructArtifactUrl(): URL =
+    constructArtifactBaseUri().resolve(jarFilename(identifier)).toURL
 
   def pomFilename(identifier: MavenIdentifier): String =
     identifier.artifactId + "-" + identifier.version + ".pom"
@@ -27,7 +29,7 @@ class MavenDownloader(identifier: MavenIdentifier) {
     identifier.artifactId + "-" + identifier.version + ".jar"
 
   def downloadJar(): JarFile = {
-    JarFile(jarResource.read())
+    JarFile(jarResource.read(), constructArtifactUrl())
   }
 
   def downloadPom(): PomFile= {

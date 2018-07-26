@@ -1,6 +1,7 @@
 package de.upb.cs.swt.delphi.crawler
 
 import java.io.InputStream
+import java.net.URL
 
 
 /**
@@ -12,7 +13,7 @@ package object preprocessing {
     * Used for identifcation (Pattern matching) of jar file
     * @param is jar file stream
     */
-  case class JarFile(is: InputStream)
+  case class JarFile(is: InputStream, url: URL)
 
   /**
     * Used for identification (Pattern matching) of pom file

@@ -30,7 +30,7 @@ class ElasticCallGraphActor(client: HttpClient) extends Actor with ActorLogging 
       val resp = client.execute {
         search("delphi").query {
           boolQuery().must(
-            termQuery("name", id.toString)
+            termQuery("name", id.toUniqueString)
           )
         }.sourceInclude("_id")
       }.await
@@ -41,7 +41,7 @@ class ElasticCallGraphActor(client: HttpClient) extends Actor with ActorLogging 
         } else {
           log.warning("WARNING: No document for mapped project {} exists! Creating new document...", id.toString)
           val resp = client.execute {
-            indexInto("delphi" / "project").fields("name" -> id.toString,
+            indexInto("delphi" / "project").fields("name" -> id.toUniqueString,
               "source" -> "Maven",
               "identifier" -> Map(
                 "groupId" -> id.groupId,

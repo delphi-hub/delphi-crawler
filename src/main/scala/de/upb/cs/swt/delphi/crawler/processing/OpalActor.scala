@@ -1,35 +1,30 @@
 package de.upb.cs.swt.delphi.crawler.processing
 
-import java.io.File
+import java.io.{BufferedInputStream, File, InputStream}
+import java.net.URL
+import java.util.jar.JarInputStream
 
 import akka.actor.{Actor, ActorLogging, Props}
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.preprocessing.JarFile
 import de.upb.cs.swt.delphi.crawler.processing.OpalActor.TempFile
+import de.upb.cs.swt.delphi.crawler.tools.ClassStreamReader
 import org.apache.commons.io.FileUtils
 import org.opalj.AnalysisModes
-import org.opalj.br.analyses.{AnalysisModeConfigFactory, Project}
+import org.opalj.br.analyses.{AnalysisModeConfigFactory, InstantiableClassesKey, Project}
 import org.opalj.ai.analyses.cg.{CallGraphFactory, ExtVTACallGraphAlgorithmConfiguration}
 import org.opalj.ai.analyses.cg.CallGraphFactory.defaultEntryPointsForLibraries
 
 class OpalActor(configuration: Configuration) extends Actor with ActorLogging{
 
   override def receive: Receive = {
-    case TempFile(f) =>
-      findCalls(f)
-    case JarFile(is) => {   //TODO: Remove this before this goes to production - ideally when we can pass IS to OPAL
-      val dummyFile: File = new File(configuration.tempFileStorage + "testFile-" + System.nanoTime() + ".jar")
-      FileUtils.copyInputStreamToFile(is, dummyFile)
-      is.close()
-
-      findCalls(dummyFile)
-
-      dummyFile.delete()
+    case JarFile(is, url) => {
+      findCalls(is, url)
     }
   }
 
-  private def findCalls(file: File) = {
-    val p = Project(file, org.opalj.bytecode.RTJar)
+  private def findCalls(is: InputStream, url: URL) = {
+    val p = new ClassStreamReader {}.createProject(url, new JarInputStream(is))
     val cpaP = AnalysisModeConfigFactory.resetAnalysisMode(p, AnalysisModes.OPA)
     val entryPoints = () => defaultEntryPointsForLibraries(cpaP)
     val config = new ExtVTACallGraphAlgorithmConfiguration(cpaP)

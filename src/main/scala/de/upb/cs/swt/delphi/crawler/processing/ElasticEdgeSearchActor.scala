@@ -9,11 +9,32 @@ import org.opalj.ai.analyses.cg.UnresolvedMethodCall
 
 class ElasticEdgeSearchActor(client: HttpClient) extends Actor with ActorLogging{
 
+  val maxBatchSize = 150
+
   override def receive: Receive = {
     case (mx: Set[UnresolvedMethodCall], ix: Set[MavenIdentifier]) => {
-      searchMethods(mx, ix.toList) match { case (unmapped, mapped) =>
-        sender() ! ((unmapped, ix), mapped)
+      try {
+        segmentFun(searchMethods, maxBatchSize)(mx, ix.toList) match {
+          case (unmapped, mapped) =>
+            sender() ! ((unmapped, ix), mapped)
+        }
+      } catch {
+        case e => log.info("Exception thrown: " + e)
       }
+    }
+  }
+
+  //Splits the set of methods in "batch" sized chucks before passing them to the search function, to prevent
+  //  the construction of a search too large to be run
+  private def segmentFun(fx: ((Set[UnresolvedMethodCall], List[MavenIdentifier]) => (Set[UnresolvedMethodCall], Set[MappedEdge])), batch: Int)
+                     (mx: Set[UnresolvedMethodCall], ix: List[MavenIdentifier]): (Set[UnresolvedMethodCall], Set[MappedEdge]) = {
+    if (mx.size > batch) {
+      val segmentedMx = mx.splitAt(batch)
+      val segmentResults = fx(segmentedMx._1, ix)
+      val remainingResults = segmentFun(fx, batch)(segmentedMx._2, ix)
+      (segmentResults._1 ++ remainingResults._1, segmentResults._2 ++ remainingResults._2)
+    } else {
+      fx(mx, ix)
     }
   }
 

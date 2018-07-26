@@ -1,7 +1,7 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import com.sksamuel.elastic4s.http.ElasticClient
+import com.sksamuel.elastic4s.http.HttpClient
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
@@ -11,7 +11,7 @@ import de.upb.cs.swt.delphi.crawler.processing.CallGraphStream
 class PreprocessingDispatchActor(configuration : Configuration, nextStep : ActorRef) extends Actor with ActorLogging {
 
   val elasticPool = context.actorOf(RoundRobinPool(configuration.elasticActorPoolSize)
-    .props(ElasticActor.props(ElasticClient(configuration.elasticsearchClientUri))))
+    .props(ElasticActor.props(HttpClient(configuration.elasticsearchClientUri))))
   val callGraphPool = context.actorOf(BalancingPool(configuration.callGraphStreamPoolSize)
     .props(CallGraphStream.props(configuration)))
 
