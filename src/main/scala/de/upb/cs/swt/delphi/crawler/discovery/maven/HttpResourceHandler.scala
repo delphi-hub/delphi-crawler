@@ -1,6 +1,6 @@
 package de.upb.cs.swt.delphi.crawler.discovery.maven
 
-import java.io.InputStream
+import java.io.{BufferedInputStream, InputStream}
 import java.net.{HttpURLConnection, URI}
 
 import de.upb.cs.swt.delphi.crawler.BuildInfo
@@ -13,7 +13,7 @@ class HttpResourceHandler(root : URI) extends ResourceHandler {
 
   class HttpResource(name: String) extends ResourceHandler.Resource {
     override def read(): InputStream = {
-      import java.io.BufferedInputStream
+
       val target = root.resolve(name).toURL
 
       val conn = target.openConnection.asInstanceOf[HttpURLConnection]
