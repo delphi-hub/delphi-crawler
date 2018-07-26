@@ -17,6 +17,9 @@ lazy val crawler = (project in file(".")).
     buildInfoPackage := "de.upb.cs.swt.delphi.crawler"
   )
 
+scalastyleConfig := baseDirectory.value / "project" / "scalastyle_config.xml"
+
+
 mainClass in (Compile, run) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
 mainClass in (Compile, packageBin) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
 mainClass in Compile :=  Some("de.upb.cs.swt.delphi.crawler.Crawler")
