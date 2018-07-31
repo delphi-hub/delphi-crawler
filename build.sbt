@@ -79,4 +79,6 @@ scalastyleTask :={
   scalastyle.in(Compile).toTask("").value
   scalastyle.in(Test).toTask("").value
 }
+(scalastyleConfig in Compile):=file("project/scalastyle-config.xml")
+(scalastyleConfig in Test):=file("project/scalastyle-config.xml")
 (test in Test) := ((test in Test) dependsOn scalastyleTask).value
