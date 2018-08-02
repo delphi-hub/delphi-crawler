@@ -9,7 +9,14 @@ import de.upb.cs.swt.delphi.crawler.processing.CallGraphStream.MappedEdge
 class ElasticCallGraphActor(client: HttpClient) extends Actor with ActorLogging {
   override def receive: Receive = {
     case (i: MavenIdentifier, ex: Set[MappedEdge]) => {
-      pushEdges(i, ex)
+      try {
+        pushEdges(i, ex)
+      } catch {
+        case e: Exception => {
+          log.warning("Call graph pusher threw exception " + e)
+          sender() ! akka.actor.Status.Failure(e)
+        }
+      }
     }
   }
 

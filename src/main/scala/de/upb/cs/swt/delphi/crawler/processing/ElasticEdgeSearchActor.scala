@@ -19,7 +19,9 @@ class ElasticEdgeSearchActor(client: HttpClient) extends Actor with ActorLogging
             sender() ! ((unmapped, ix), mapped)
         }
       } catch {
-        case e => log.info("Exception thrown: " + e)
+        case e: Exception =>
+          log.warning("Elastic mapper threw exception " + e)
+          akka.actor.Status.Failure(e)
       }
     }
   }

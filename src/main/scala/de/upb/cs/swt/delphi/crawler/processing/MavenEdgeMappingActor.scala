@@ -20,7 +20,10 @@ class MavenEdgeMappingActor(configuration: Configuration) extends Actor with Act
       try {
         sender() ! matchEdges(mx, ix)
       } catch {
-        case e: Exception => log.warning("Maven mapper threw exception " + e)
+        case e: Exception => {
+          log.warning("Maven mapper threw exception " + e)
+          sender() ! akka.actor.Status.Failure(e)
+        }
       }
     }
   }

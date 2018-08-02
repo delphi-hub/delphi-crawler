@@ -19,7 +19,14 @@ class OpalActor(configuration: Configuration) extends Actor with ActorLogging{
 
   override def receive: Receive = {
     case JarFile(is, url) => {
-      findCalls(is, url)
+      try {
+        findCalls(is, url)
+      } catch {
+        case e: Exception => {
+          log.warning("Opal actor threw exception " + e)
+          sender() ! akka.actor.Status.Failure(e)
+        }
+      }
     }
   }
 
@@ -29,6 +36,8 @@ class OpalActor(configuration: Configuration) extends Actor with ActorLogging{
     val entryPoints = () => defaultEntryPointsForLibraries(cpaP)
     val config = new ExtVTACallGraphAlgorithmConfiguration(cpaP)
     val callGraph = CallGraphFactory.create(cpaP, entryPoints, config)
+
+    val test = cpaP.allMethodsWithBody.size
 
     val libraryCalls = callGraph.unresolvedMethodCalls.toSet
 
