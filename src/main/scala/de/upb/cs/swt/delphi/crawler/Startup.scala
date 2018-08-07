@@ -1,7 +1,6 @@
 package de.upb.cs.swt.delphi.crawler
 
 import akka.actor.ActorSystem
-import de.upb.cs.swt.delphi.crawler.instancemanagement.IRReachablePreflightCheck
 import de.upb.cs.swt.delphi.crawler.storage.{ElasticIndexPreflightCheck, ElasticReachablePreflightCheck}
 
 import scala.util.{Failure, Success, Try}
@@ -15,7 +14,7 @@ object Startup extends AppLogging {
 
   def preflightCheck(configuration: Configuration)(implicit system : ActorSystem) : Try[Configuration] = {
     log.info("Performing pre-flight checks")
-    val checks = Seq(IRReachablePreflightCheck, ElasticReachablePreflightCheck, ElasticIndexPreflightCheck)
+    val checks = Seq(ElasticReachablePreflightCheck, ElasticIndexPreflightCheck)
 
     checks.foreach(p => {
       val result = p.check(configuration)
