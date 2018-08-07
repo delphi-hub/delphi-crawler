@@ -71,4 +71,18 @@ class ClassStreamReaderTest extends FlatSpec with Matchers with BeforeAndAfter {
     p.projectClassFilesCount should be (23)
     p.allMethodsWithBody.size should not be (0)
   }
+
+  it should "be able to construct classes out of a somewhat broken JAR file" in {
+    val target = File("src/test/resources/xsddoc-0.8.jar")
+    val fis = target.inputStream()
+
+
+    val jis = new JarInputStream(fis)
+
+    val p = new ClassStreamReader {}.createProject(target.toURL, jis)
+
+    p shouldBe a [Project[_]]
+    p.projectClassFilesCount should be (21)
+    p.allMethodsWithBody.size should not be (0)
+  }
 }
