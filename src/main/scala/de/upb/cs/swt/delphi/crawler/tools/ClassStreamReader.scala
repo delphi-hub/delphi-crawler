@@ -35,17 +35,15 @@ trait ClassStreamReader {
 
     while (je != null) {
       val entryName = je.getName
-      if (je.getSize.toInt > 0 && entryName.endsWith(".class")) {
-        val entryBytes = new Array[Byte](je.getSize.toInt)
+      if (entryName.endsWith(".class")) {
+        val baos = new ByteArrayOutputStream()
 
-        var remaining = entryBytes.length
-        var offset = 0
-        while (remaining > 0) {
-          val readBytes = in.read(entryBytes, offset, remaining)
-          if (readBytes < 0) throw new EOFException()
-          remaining -= readBytes
-          offset += readBytes
+        Stream.continually(in.read()).takeWhile(_ != -1).foreach { x =>
+          baos.write(x)
         }
+
+        val entryBytes = baos.toByteArray
+
         futures ::= Future[List[(ClassFile, String)]] {
           val cfs = reader.ClassFile(new DataInputStream(new ByteArrayInputStream(entryBytes)))
           cfs map { cf => (cf, entryName) }
@@ -54,7 +52,9 @@ trait ClassStreamReader {
       je = in.getNextJarEntry()
     }
 
-    futures.flatMap(f => Await.result(f, Duration.Inf))
+    val result = futures.flatMap(f => Await.result(f, Duration.Inf))
+
+    result
   }
 
   /**
@@ -67,11 +67,12 @@ trait ClassStreamReader {
     val config : Config = org.opalj.br.BaseConfig
 
     val projectClasses: Traversable[(ClassFile, URL)] = readClassFiles(jarInputStream).map { case (classFile, _) => (classFile, source) }
-    val libraryClasses: Traversable[(ClassFile, URL)] =
+    val libraryClasses: Traversable[(ClassFile, URL)] = Nil
+    /*
       readClassFiles(new JarInputStream
                             (new FileInputStream(org.opalj.bytecode.RTJar)), Project.JavaLibraryClassFileReader)
         .map{ case (classFile, _) => (classFile, org.opalj.bytecode.RTJar.toURI.toURL) }
-
+    */
 
     Project(projectClasses, libraryClasses, true, Traversable.empty)(config, OPALLogAdapter)
   }
