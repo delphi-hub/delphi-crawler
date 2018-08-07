@@ -39,7 +39,7 @@ trait ClassStreamReader {
       if (entryName.endsWith(".class")) {
 
 
-        def getEntryBytes = {
+        val entryBytes = {
           if (je.getSize() > -1) {
             val entryBytes = new Array[Byte](je.getSize.toInt)
             var remaining = entryBytes.length
@@ -62,8 +62,6 @@ trait ClassStreamReader {
             baos.toByteArray
           }
         }
-
-        val entryBytes = getEntryBytes
 
         futures ::= Future[List[(ClassFile, String)]] {
           val cfs = reader.ClassFile(new DataInputStream(new ByteArrayInputStream(entryBytes)))
