@@ -38,29 +38,16 @@ trait ClassStreamReader {
       val entryName = je.getName
       if (entryName.endsWith(".class")) {
 
-
         val entryBytes = {
-          if (je.getSize() > -1) {
-            val entryBytes = new Array[Byte](je.getSize.toInt)
-            var remaining = entryBytes.length
-            var offset = 0
-            while (remaining > 0) {
-              val readBytes = in.read(entryBytes, offset, remaining)
-              if (readBytes < 0) throw new EOFException()
-              remaining -= readBytes
-              offset += readBytes
-            }
-
-            entryBytes
-          } else {
             val baos = new ByteArrayOutputStream()
-
-            Stream.continually(in.read()).takeWhile(_ != -1).foreach { x =>
-              baos.write(x)
+            val buffer = new Array[Byte](32 * 1024)
+          
+            Stream.continually(in.read(buffer)).takeWhile(_ > 0).foreach { bytesRead =>
+              baos.write(buffer, 0, bytesRead)
+              baos.flush()
             }
 
             baos.toByteArray
-          }
         }
 
         futures ::= Future[List[(ClassFile, String)]] {
