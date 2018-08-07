@@ -23,12 +23,13 @@ trait ClassStreamReader {
 
   /**
     * Reifies classes in a provided JAR from any origin
+    *
     * @param in An input stream of a JAR file
     * @return A list of named reified class files including bodies
     */
   def readClassFiles(in: => JarInputStream,
-                     reader : Java8LibraryFramework = Project.JavaClassFileReader(GlobalLogContext, org.opalj.br.BaseConfig))
-                  : List[(ClassFile, String)] = org.opalj.io.process(in) { in =>
+                     reader: Java8LibraryFramework = Project.JavaClassFileReader(GlobalLogContext, org.opalj.br.BaseConfig))
+  : List[(ClassFile, String)] = org.opalj.io.process(in) { in =>
     var je: JarEntry = in.getNextJarEntry()
 
     var futures: List[Future[List[(ClassFile, String)]]] = Nil
@@ -36,13 +37,33 @@ trait ClassStreamReader {
     while (je != null) {
       val entryName = je.getName
       if (entryName.endsWith(".class")) {
-        val baos = new ByteArrayOutputStream()
 
-        Stream.continually(in.read()).takeWhile(_ != -1).foreach { x =>
-          baos.write(x)
+
+        def getEntryBytes = {
+          if (je.getSize() > -1) {
+            val entryBytes = new Array[Byte](je.getSize.toInt)
+            var remaining = entryBytes.length
+            var offset = 0
+            while (remaining > 0) {
+              val readBytes = in.read(entryBytes, offset, remaining)
+              if (readBytes < 0) throw new EOFException()
+              remaining -= readBytes
+              offset += readBytes
+            }
+
+            entryBytes
+          } else {
+            val baos = new ByteArrayOutputStream()
+
+            Stream.continually(in.read()).takeWhile(_ != -1).foreach { x =>
+              baos.write(x)
+            }
+
+            baos.toByteArray
+          }
         }
 
-        val entryBytes = baos.toByteArray
+        val entryBytes = getEntryBytes
 
         futures ::= Future[List[(ClassFile, String)]] {
           val cfs = reader.ClassFile(new DataInputStream(new ByteArrayInputStream(entryBytes)))
@@ -59,20 +80,19 @@ trait ClassStreamReader {
 
   /**
     * Creates a OPAL Project from a jar input stream
-    * @param source The source of the JAR file
+    *
+    * @param source         The source of the JAR file
     * @param jarInputStream An input stream for the JAR file
     * @return An OPAL Project including the JRE as library classes
     */
   def createProject(source: URL, jarInputStream: JarInputStream): Project[URL] = {
-    val config : Config = org.opalj.br.BaseConfig
+    val config: Config = org.opalj.br.BaseConfig
 
     val projectClasses: Traversable[(ClassFile, URL)] = readClassFiles(jarInputStream).map { case (classFile, _) => (classFile, source) }
-    val libraryClasses: Traversable[(ClassFile, URL)] = Nil
-    /*
-      readClassFiles(new JarInputStream
-                            (new FileInputStream(org.opalj.bytecode.RTJar)), Project.JavaLibraryClassFileReader)
-        .map{ case (classFile, _) => (classFile, org.opalj.bytecode.RTJar.toURI.toURL) }
-    */
+    val libraryClasses: Traversable[(ClassFile, URL)] = readClassFiles(new JarInputStream
+    (new FileInputStream(org.opalj.bytecode.RTJar)), Project.JavaLibraryClassFileReader)
+      .map { case (classFile, _) => (classFile, org.opalj.bytecode.RTJar.toURI.toURL) }
+
 
     Project(projectClasses, libraryClasses, true, Traversable.empty)(config, OPALLogAdapter)
   }
