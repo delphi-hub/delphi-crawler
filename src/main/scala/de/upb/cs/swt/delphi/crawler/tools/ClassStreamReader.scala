@@ -41,7 +41,7 @@ trait ClassStreamReader {
         val entryBytes = {
             val baos = new ByteArrayOutputStream()
             val buffer = new Array[Byte](32 * 1024)
-          
+
             Stream.continually(in.read(buffer)).takeWhile(_ > 0).foreach { bytesRead =>
               baos.write(buffer, 0, bytesRead)
               baos.flush()

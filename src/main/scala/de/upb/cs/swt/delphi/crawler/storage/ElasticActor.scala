@@ -7,8 +7,9 @@ import com.sksamuel.elastic4s.http.{ElasticClient, HttpClient}
 import de.upb.cs.swt.delphi.crawler.Identifier
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
+import de.upb.cs.swt.delphi.crawler.processing.HermesResults
 
-class ElasticActor(client: ElasticClient) extends Actor with ActorLogging {
+class ElasticActor(client: ElasticClient) extends Actor with ActorLogging with ArtifactIdentityQuery {
 
   override def receive = {
     case m : MavenIdentifier => {
@@ -20,7 +21,7 @@ class ElasticActor(client: ElasticClient) extends Actor with ActorLogging {
                                                        "groupId" -> m.groupId,
                                                        "artifactId" -> m.artifactId,
                                                        "version" -> m.version))
-      }
+      }.await
     }
     case g : GitIdentifier => {
       log.info("Pushing new git identifier to elastic: [{}]", g)
@@ -30,6 +31,19 @@ class ElasticActor(client: ElasticClient) extends Actor with ActorLogging {
                                                      "identifier" -> Map(
                                                        "repoUrl" -> g.repoUrl,
                                                        "commitId" -> g.commitId))
+      }
+    }
+    case h : HermesResults => {
+
+      implicit val c = client
+      elasticId(h.identifier) match {
+        case Some(id) => {
+          log.info(s"Pushing Hermes results for ${h.identifier} under id $id.")
+          client.execute {
+            update(id).in(delphiProjectType).doc("features" -> h.featureMap)
+          }.await
+        }
+        case None => log.warning(s"Tried to push hermes results for non-existing identifier: ${h.identifier}.")
       }
     }
     case x => log.warning("Received unknown message: [{}] ", x)

@@ -8,10 +8,10 @@ import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration}
 
 import scala.util.{Success, Try}
 
-trait ElasticIndexMaintenance extends AppLogging  {
+trait ElasticIndexMaintenance extends AppLogging {
 
 
-  def createDelphiIndex(configuration: Configuration)(implicit system : ActorSystem) : Try[Configuration] = {
+  def createDelphiIndex(configuration: Configuration)(implicit system: ActorSystem): Try[Configuration] = {
     log.warning("Could not find Delphi index. Creating it...")
 
     val client = ElasticClient(configuration.elasticsearchClientUri)
@@ -30,7 +30,7 @@ trait ElasticIndexMaintenance extends AppLogging  {
 
     val f = client.execute {
       createIndex(delphi) mappings (
-        mapping(project) as (
+        mapping(project) as(
           keywordField("name"),
           keywordField("source"),
           keywordField("language"),
@@ -45,12 +45,12 @@ trait ElasticIndexMaintenance extends AppLogging  {
 
           objectField("features") fields featureList
         )
-      )
+        )
 
     }.await
 
     //Increases maximum number of nested fields
-    client.execute{
+    client.execute {
       updateSettings(delphi).set(
         "index.mapping.nested_fields.limit", "250"
       )
@@ -59,11 +59,11 @@ trait ElasticIndexMaintenance extends AppLogging  {
     Success(configuration)
   }
 
-  def migrateIndex(configuration: Configuration)(implicit system: ActorSystem) : Try[Configuration] = {
+  def migrateIndex(configuration: Configuration)(implicit system: ActorSystem): Try[Configuration] = {
     Success(configuration)
   }
 
-  def isIndexCurrent(configuration: Configuration)(implicit system: ActorSystem) : Boolean = {
+  def isIndexCurrent(configuration: Configuration)(implicit system: ActorSystem): Boolean = {
     true
   }
 }
