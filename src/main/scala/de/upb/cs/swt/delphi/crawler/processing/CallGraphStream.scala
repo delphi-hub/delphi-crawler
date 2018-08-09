@@ -13,9 +13,11 @@ import akka.util.Timeout
 import com.sksamuel.elastic4s.http.HttpClient
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.preprocessing.{JarFile, MavenDownloader, PomFile}
+import de.upb.cs.swt.delphi.crawler.preprocessing.{JarFile, MavenDownloader, MetaFile, PomFile}
 import de.upb.cs.swt.delphi.crawler.processing.CallGraphStream.MappedEdge
 import de.upb.cs.swt.delphi.crawler.storage.ElasticCallGraphActor
+import org.apache.maven.artifact.repository.metadata.io.xpp3.MetadataXpp3Reader
+import org.apache.maven.artifact.versioning.ComparableVersion
 import org.apache.maven.model.Dependency
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader
 import org.opalj.ai.analyses.cg.UnresolvedMethodCall
@@ -31,7 +33,7 @@ class CallGraphStream(configuration: Configuration) extends Actor with ActorLogg
       graphActor forward m
   }
 
-  implicit val timeout: Timeout = 60 seconds
+  implicit val timeout: Timeout = 600 seconds
   val decider: Supervision.Decider = {
     case e: Exception => {log.warning("Call graph stream threw exception " + e); Supervision.Resume}
   }
@@ -40,6 +42,7 @@ class CallGraphStream(configuration: Configuration) extends Actor with ActorLogg
   implicit val ec = ExecutionContext.global
 
   val pomReader: MavenXpp3Reader = new MavenXpp3Reader()
+  val metaReader: MetadataXpp3Reader = new MetadataXpp3Reader()
   val esClient = HttpClient(configuration.elasticsearchClientUri)
 
   val opalActor: ActorRef = context.actorOf(OpalActor.props(configuration))
@@ -47,12 +50,12 @@ class CallGraphStream(configuration: Configuration) extends Actor with ActorLogg
   val esEdgeSearchActor: ActorRef = context.actorOf(ElasticEdgeSearchActor.props(esClient))
   val esPushActor: ActorRef = context.actorOf(ElasticCallGraphActor.props(esClient))
 
-  val fileGenFlow: Flow[MavenIdentifier, (PomFile, (JarFile, MavenIdentifier)), NotUsed] = Flow.fromFunction(fetchFiles)
+  val fileGenFlow: Flow[MavenIdentifier, (PomFile, JarFile, MavenIdentifier), NotUsed] = Flow.fromFunction(fetchFiles)
   val edgeSetFlow: Flow[(JarFile, (Set[MavenIdentifier], MavenIdentifier)), ((Set[UnresolvedMethodCall], Set[MavenIdentifier]), MavenIdentifier), NotUsed] =
     Flow[(JarFile, (Set[MavenIdentifier], MavenIdentifier))].mapAsync[((Set[UnresolvedMethodCall], Set[MavenIdentifier]), MavenIdentifier)](parallelism){
       case (jf: JarFile, (ix: Set[MavenIdentifier], i: MavenIdentifier)) => (opalActor ? jf).mapTo[Set[UnresolvedMethodCall]].map(cx => ((cx, ix), i))}
-  val dependencyConverter: Flow[(PomFile, (JarFile, MavenIdentifier)), (Set[MavenIdentifier], (JarFile, MavenIdentifier)), NotUsed] =
-    Flow.fromFunction{ case (pf, t) => (mavenDependencyConverter(pf), t)}
+  val dependencyConverter: Flow[(PomFile, JarFile, MavenIdentifier), (Set[MavenIdentifier], (JarFile, MavenIdentifier)), NotUsed] =
+    Flow.fromFunction{ case (pf, jf, id) => (mavenDependencyConverter(pf), (jf, id))}
   val filterFlow: Flow[(Set[MavenIdentifier], (JarFile, MavenIdentifier)), (JarFile, (Set[MavenIdentifier], MavenIdentifier)), NotUsed] =
     Flow.fromFunction{ case (ix, (jf, i)) => (jf, (ix, i))}
 
@@ -72,7 +75,7 @@ class CallGraphStream(configuration: Configuration) extends Actor with ActorLogg
       val fileGen = b.add(fileGenFlow)
       val edgeGen = b.add(edgeSetFlow)
 
-      fileGen.filter(t => (t._2._2.artifactId != null)) ~> dependencyConverter ~> filterFlow.filter{case (_, (ix, i)) =>
+      fileGen.filter(t => (t._3.artifactId != null)) ~> dependencyConverter ~> filterFlow.filter{case (_, (ix, i)) =>
         if(ix.isEmpty) { log.info(i.toString + " not mapped, incomplete POM file."); false }
         else { log.info(i.toString + " mapped, valid POM file."); true }} ~> edgeGen.in
 
@@ -97,20 +100,21 @@ class CallGraphStream(configuration: Configuration) extends Actor with ActorLogg
     SinkShape(edgeGenerator.in)
   })
 
-  def fetchFiles(mavenIdentifier: MavenIdentifier): (PomFile, (JarFile, MavenIdentifier)) = {
+  def fetchFiles(mavenIdentifier: MavenIdentifier): (PomFile, JarFile, MavenIdentifier) = {
     try {
       val downloader = new MavenDownloader(mavenIdentifier)
-      (downloader.downloadPom(), (downloader.downloadJar(), mavenIdentifier))
+      (downloader.downloadPom(), downloader.downloadJar(), mavenIdentifier)
     } catch {
       case e: FileNotFoundException => {
         log.info("{} not mapped, missing POM file", mavenIdentifier.toString)
-        (PomFile(null), (JarFile(null, null), MavenIdentifier(null, null, null, null)))  //There might be a more elegant way of doing this
+        (PomFile(null), JarFile(null, null), MavenIdentifier(null, null, null, null))  //There might be a more elegant way of doing this
       }
     }
   }
 
   def mavenDependencyConverter(pomFile: PomFile): Set[MavenIdentifier] = {
     val pomObj = pomReader.read(pomFile.is)
+    pomFile.is.close()
 
     def resolveProperty(str: String) = {
       if(str == null || !str.startsWith("$")) {
@@ -133,29 +137,47 @@ class CallGraphStream(configuration: Configuration) extends Actor with ActorLogg
       }
     }
 
+    def resolveIdentifier(d: Dependency): MavenIdentifier = {
+      val groupId = resolveProperty(d.getGroupId)
+      val artifactId = resolveProperty(d.getArtifactId)
+
+      if (groupId == null || artifactId == null) {
+        MavenIdentifier(null, null, null, null)
+      } else {
+        val versionSpec = resolveProperty(d.getVersion)
+        val tempId = MavenIdentifier(configuration.mavenRepoBase.toString, groupId, artifactId, versionSpec)
+
+        try {
+          val downloader = new MavenDownloader(tempId)
+          val metaFile = downloader.downloadMeta
+          val metaObj = metaReader.read(metaFile.is)
+          metaFile.is.close
+          val versionList = metaObj.getVersioning.getVersions.asScala
+          if (versionList.contains(versionSpec) || versionSpec == null) {
+            tempId
+          } else {
+            val versionComp = new ComparableVersion(versionSpec)
+            val versionNum = versionList.indexWhere(v => new ComparableVersion(v).compareTo(versionComp) >= 0)
+            val version = if (versionNum == -1) versionList.last else if (versionNum == 0) versionList.head else versionList(versionNum - 1)
+            MavenIdentifier(configuration.mavenRepoBase.toString, groupId, artifactId, version)
+          }
+        } catch {
+          case e: java.io.FileNotFoundException => {
+            log.warning("Dependency {}:{} does not exist", groupId, artifactId)
+            MavenIdentifier(null, null, null, null)
+          }
+        }
+      }
+    }
+
     val pomSet = pomObj.getDependencies()
-    .asScala.toSet[Dependency].map(d => {
-      MavenIdentifier(
-        configuration.mavenRepoBase.toString(),
-        resolveProperty(d.getGroupId()),
-        resolveProperty(d.getArtifactId()),
-        resolveProperty(d.getVersion())
-      )
-    }).filter(
+    .asScala.toSet[Dependency].map(resolveIdentifier).filter(
       m => !(m.version == null || m.groupId == null || m.artifactId == null)
     )
-    pomFile.is.close()
     pomSet
   }
 
   val actorSource: Source[MavenIdentifier, ActorRef] = Source.actorRef(5000, OverflowStrategy.dropNew)  //We may need to adjust this
-
-  val printSink: Sink[Set[MappedEdge], Future[Done]] = Sink.foreach[Set[MappedEdge]] { ex =>
-    log.info("The following methods were found:")
-    ex.foreach{
-      e => log.info("In " + e.library.toString + ": " + e.method)
-    }
-  }
 
   val callGraphGraph: RunnableGraph[ActorRef] = actorSource.toMat(edgeMappingGraph)(Keep.left)
 

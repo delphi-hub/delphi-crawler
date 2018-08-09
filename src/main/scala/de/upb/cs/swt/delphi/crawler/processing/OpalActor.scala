@@ -32,6 +32,7 @@ class OpalActor(configuration: Configuration) extends Actor with ActorLogging{
 
   private def findCalls(is: InputStream, url: URL) = {
     val p = new ClassStreamReader {}.createProject(url, new JarInputStream(is))
+    is.close()
     val cpaP = AnalysisModeConfigFactory.resetAnalysisMode(p, AnalysisModes.OPA)
     val entryPoints = () => defaultEntryPointsForLibraries(cpaP)
     val config = new ExtVTACallGraphAlgorithmConfiguration(cpaP)

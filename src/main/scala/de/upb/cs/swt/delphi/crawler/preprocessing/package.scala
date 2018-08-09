@@ -21,4 +21,10 @@ package object preprocessing {
     */
   case class PomFile(is: InputStream)
 
+  /**
+    * Used for identification (Pattern matching) of metadata file
+    * @param is metadata file stream
+    */
+  case class MetaFile(is: InputStream)
+
 }

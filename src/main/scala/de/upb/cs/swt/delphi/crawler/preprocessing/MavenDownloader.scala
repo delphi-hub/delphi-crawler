@@ -1,5 +1,6 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
+import java.io.InputStream
 import java.net.{URI, URL}
 
 import de.upb.cs.swt.delphi.crawler.discovery.maven.{HttpResourceHandler, MavenIdentifier}
@@ -8,6 +9,7 @@ class MavenDownloader(identifier: MavenIdentifier) {
   val http = new HttpResourceHandler(constructArtifactBaseUri())
   val pomResource = http.locate(pomFilename(identifier))
   val jarResource = http.locate(jarFilename(identifier))
+  val metaResource = http.locate("maven-metadata.xml")
 
   /**
     * Construct url from maven identifier
@@ -17,22 +19,26 @@ class MavenDownloader(identifier: MavenIdentifier) {
     new URI(identifier.repository)
       .resolve(identifier.groupId.replace('.', '/') + "/")
       .resolve(identifier.artifactId + "/")
-      .resolve(identifier.version + "/")
+      // .resolve(identifier.version + "/")
 
   def constructArtifactUrl(): URL =
     constructArtifactBaseUri().resolve(jarFilename(identifier)).toURL
 
   def pomFilename(identifier: MavenIdentifier): String =
-    identifier.artifactId + "-" + identifier.version + ".pom"
+    identifier.version + "/" + identifier.artifactId + "-" + identifier.version + ".pom"
 
   def jarFilename(identifier: MavenIdentifier): String =
-    identifier.artifactId + "-" + identifier.version + ".jar"
+    identifier.version + "/" + identifier.artifactId + "-" + identifier.version + ".jar"
 
   def downloadJar(): JarFile = {
     JarFile(jarResource.read(), constructArtifactUrl())
   }
 
-  def downloadPom(): PomFile= {
+  def downloadPom(): PomFile = {
     PomFile(pomResource.read())
+  }
+
+  def downloadMeta(): MetaFile = {
+    MetaFile(metaResource.read())
   }
 }
