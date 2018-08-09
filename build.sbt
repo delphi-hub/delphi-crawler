@@ -17,7 +17,7 @@ lazy val crawler = (project in file(".")).
     buildInfoKeys := Seq[BuildInfoKey](name, version, scalaVersion, sbtVersion),
     buildInfoPackage := "de.upb.cs.swt.delphi.crawler"
   )
-
+scalastyleConfig := baseDirectory.value / "project" / "scalastyle-config.xml"
 mainClass in (Compile, run) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
 mainClass in (Compile, packageBin) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
 mainClass in Compile :=  Some("de.upb.cs.swt.delphi.crawler.Crawler")
@@ -74,11 +74,3 @@ libraryDependencies ++= Seq(
 libraryDependencies += "org.apache.maven.indexer" % "indexer-reader" % "6.0.0"
 libraryDependencies += "org.apache.maven.indexer" % "indexer-core" % "6.0.0"
 
-lazy val scalastyleTask = taskKey[Unit]("scalastyleTask")
-scalastyleTask :={
-  scalastyle.in(Compile).toTask("").value
-  scalastyle.in(Test).toTask("").value
-}
-(scalastyleConfig in Compile):=file("project/scalastyle-config.xml")
-(scalastyleConfig in Test):=file("project/scalastyle-config.xml")
-(test in Test) := ((test in Test) dependsOn scalastyleTask).value
