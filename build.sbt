@@ -36,7 +36,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http" % "10.1.3"
 )
 
-libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3" % Runtime
 
 val elastic4sVersion = "6.3.0"
 libraryDependencies ++= Seq(
@@ -82,4 +82,3 @@ libraryDependencies += "org.apache.maven.indexer" % "indexer-core" % "6.0.0"
 libraryDependencies ++= Seq(
     "com.google.guava" % "guava" % "25.1-jre"
 )
-
