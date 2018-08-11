@@ -10,6 +10,7 @@ lazy val crawler = (project in file(".")).
   settings (
     dockerBaseImage := "openjdk:jre-alpine"
   ).
+  enablePlugins(ScalastylePlugin).
   enablePlugins(AshScriptPlugin).
   enablePlugins(BuildInfoPlugin).
   settings(
@@ -17,8 +18,8 @@ lazy val crawler = (project in file(".")).
     buildInfoPackage := "de.upb.cs.swt.delphi.crawler"
   )
 
-scalastyleConfig := baseDirectory.value / "project" / "scalastyle_config.xml"
 
+scalastyleConfig := baseDirectory.value / "project" / "scalastyle-config.xml"
 
 mainClass in (Compile, run) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
 mainClass in (Compile, packageBin) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
@@ -81,3 +82,4 @@ libraryDependencies += "org.apache.maven.indexer" % "indexer-core" % "6.0.0"
 libraryDependencies ++= Seq(
     "com.google.guava" % "guava" % "25.1-jre"
 )
+
