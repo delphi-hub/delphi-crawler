@@ -1,38 +1,35 @@
 package de.upb.cs.swt.delphi.crawler.processing
 
-import java.io.File
 import java.net.URL
+import java.util.jar.JarInputStream
 
-import akka.actor.{Actor, ActorLogging, Props}
-import de.upb.cs.swt.delphi.crawler.Identifier
-import de.upb.cs.swt.delphi.crawler.processing.HermesActor.{Analyze, HermesStatistics, ProcessResults, ProcessStatistics}
-import org.opalj.hermes.ProjectFeatures
+import akka.actor.{Actor, ActorLogging, ActorRef, Props}
+import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
+import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
+import de.upb.cs.swt.delphi.crawler.tools.ClassStreamReader
+import org.opalj.hermes.{Feature, FeatureQuery}
 
-class HermesActor extends Actor with ActorLogging {
+class HermesActor(elasticActor : ActorRef) extends Actor with ActorLogging {
 
+
+  def transformToFeatures(results: Iterator[(FeatureQuery, TraversableOnce[Feature[URL]])]) = {
+    results.flatMap{ case(query, features: TraversableOnce[Feature[URL]]) => features.map { case feature => feature.id -> feature.count}} toMap
+  }
 
   def receive = {
-    case Analyze(i : Identifier) => {
-      log.info("Starting Hermes analysis for {}", i)
+    case m : MavenArtifact => {
+      log.info(s"Starting analysis for $m")
+      val project = new ClassStreamReader{}.createProject(m.identifier.toJarLocation.toURL,
+                                            new JarInputStream(m.jarFile.is))
 
-      Hermes.analysesFinished onChange { (_, _, isFinished) ⇒
-        if (isFinished) {
-          self ! ProcessStatistics(i, Hermes.featureMatrix.head.projectConfiguration.statistics)
-          self ! ProcessResults(i, Hermes.featureMatrix.head)
-        }
-      }
+      val results = new HermesAnalyzer(project).analyzeProject()
 
-      // Fake some kind of config file here.
-      Hermes.initialize(new File(""))
-      Hermes.analyzeCorpus(runAsDaemons = false)
-    }
-    case ProcessStatistics(i : Identifier, results : HermesStatistics) => {
-      log.info("Processing Hermes statistics data for {}", i)
-      // convert
-    }
-    case ProcessResults(i : Identifier, results : ProjectFeatures[URL]) => {
-      log.info("Processing Hermes results for {}", i)
-      // convert results and push to elastic
+      val featureMap = transformToFeatures(results)
+
+      val hermesResult = HermesResults(m.identifier, featureMap)
+
+      log.info(s"Feature map for ${m.identifier.toUniqueString} is ${featureMap.size}.")
+      elasticActor ! hermesResult
     }
 
   }
@@ -40,9 +37,8 @@ class HermesActor extends Actor with ActorLogging {
 
 object HermesActor {
   type HermesStatistics = scala.collection.Map[String, Double]
-  def props = Props(new HermesActor)
+  def props(elasticActor : ActorRef) = Props(new HermesActor(elasticActor))
 
-  case class Analyze(i : Identifier)
-  case class ProcessResults(i : Identifier, results : ProjectFeatures[URL])
-  case class ProcessStatistics(i : Identifier, stats : HermesStatistics)
 }
+
+case class HermesResults(identifier: MavenIdentifier, featureMap: Map[String, Int])

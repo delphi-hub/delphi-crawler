@@ -1,30 +1,37 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import com.sksamuel.elastic4s.http.HttpClient
+import akka.util.Timeout
+import akka.pattern.ask
+import com.sksamuel.elastic4s.http.ElasticClient
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
-import akka.pattern.ask
-import akka.util.Timeout
 
 import scala.concurrent.duration._
+import scala.util.{Success, Try}
 
-class PreprocessingDispatchActor(configuration : Configuration, nextStep : ActorRef) extends Actor with ActorLogging {
+class PreprocessingDispatchActor(configuration : Configuration, nextStep : ActorRef, elasticActor : ActorRef) extends Actor with ActorLogging {
   override def receive: Receive = {
     case m : MavenIdentifier => {
-      
+
+      implicit val ec = context.dispatcher
+
       // Start creation of base record
-      val elasticActor = context.actorOf(ElasticActor.props(HttpClient(configuration.elasticsearchClientUri)))
       elasticActor forward m
 
       // Transform maven identifier into maven artifact
-      /*implicit val timeout = Timeout(5.seconds)
+      implicit val timeout = Timeout(5.seconds)
       val downloadActor = context.actorOf(MavenDownloadActor.props)
-      val mavenArtifact = downloadActor ? m
-      */
+      val f = downloadActor ? m
+
       // After transformation push to processing dispatch
-      //nextStep ! mavenArtifact
+      f.onComplete { result => result match {
+          case Success(mavenArtifact) => nextStep ! mavenArtifact
+          case x => log.error(s"Stuff happened: $x")
+        }
+      }
+
     }
 
 
@@ -33,5 +40,5 @@ class PreprocessingDispatchActor(configuration : Configuration, nextStep : Actor
 }
 
 object PreprocessingDispatchActor {
-  def props(configuration: Configuration, nextStep : ActorRef) = Props(new PreprocessingDispatchActor(configuration, nextStep))
+  def props(configuration: Configuration, nextStep : ActorRef, elasticActor: ActorRef) = Props(new PreprocessingDispatchActor(configuration, nextStep, elasticActor))
 }

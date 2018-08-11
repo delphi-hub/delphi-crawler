@@ -1,5 +1,6 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
+import java.io.BufferedInputStream
 import java.net.URI
 
 import de.upb.cs.swt.delphi.crawler.discovery.maven.{HttpResourceHandler, MavenIdentifier}
@@ -27,10 +28,10 @@ class MavenDownloader(identifier: MavenIdentifier) {
     identifier.artifactId + "-" + identifier.version + ".jar"
 
   def downloadJar(): JarFile = {
-    JarFile(pomResource.read())
+    JarFile(new BufferedInputStream(jarResource.read()))
   }
 
   def downloadPom(): PomFile= {
-    PomFile(pomResource.read())
+    PomFile(new BufferedInputStream(pomResource.read()))
   }
 }

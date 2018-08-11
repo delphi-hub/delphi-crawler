@@ -25,6 +25,7 @@
   </appender>
 
   <logger name="de.upb.cs.swt.delphi" level="INFO" />
+  <logger name="de.upb.cs.swt.delphi.crawler.tools" level="WARN" />
   <logger name="application" level="DEBUG" />
 
   <!-- Off these ones as they are annoying, and anyway we manage configuration ourselves -->
@@ -34,7 +35,7 @@
   <logger name="com.gargoylesoftware.htmlunit.javascript" level="OFF" />
 
   <root level="WARN">
-    <appender-ref ref="ASYNCFILE" />
+    <!--<appender-ref ref="ASYNCFILE" />-->
     <appender-ref ref="ASYNCSTDOUT" />
   </root>
 
