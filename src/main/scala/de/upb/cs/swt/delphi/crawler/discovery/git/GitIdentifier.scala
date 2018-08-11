@@ -1,4 +1,4 @@
-package de.upb.cs.swt.delphi.crawler.git
+package de.upb.cs.swt.delphi.crawler.discovery.git
 
 import de.upb.cs.swt.delphi.crawler.Identifier
 

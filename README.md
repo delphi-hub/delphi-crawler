@@ -36,6 +36,8 @@ sbt run
 ```
 
 It expects a running instance of elasticsearch on port 9200 on the same machine.
+You can override this default by setting the environment variable `DELPHI_ELASTIC_URI` to connect to your instance.
+The URI format is `elasticsearch://<host>:<port>`.
 
 ## Community
 
