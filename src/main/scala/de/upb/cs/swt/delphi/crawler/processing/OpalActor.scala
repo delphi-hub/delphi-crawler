@@ -38,8 +38,6 @@ class OpalActor(configuration: Configuration) extends Actor with ActorLogging{
     val config = new ExtVTACallGraphAlgorithmConfiguration(cpaP)
     val callGraph = CallGraphFactory.create(cpaP, entryPoints, config)
 
-    val test = cpaP.allMethodsWithBody.size
-
     val libraryCalls = callGraph.unresolvedMethodCalls.toSet
 
     sender() ! libraryCalls

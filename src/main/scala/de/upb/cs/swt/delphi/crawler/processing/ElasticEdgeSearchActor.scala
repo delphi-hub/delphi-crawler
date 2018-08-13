@@ -16,7 +16,7 @@ class ElasticEdgeSearchActor(client: HttpClient) extends Actor with ActorLogging
       try {
         segmentFun(searchMethods, maxBatchSize)(mx, ix.toList) match {
           case (unmapped, mapped) =>
-            sender() ! ((unmapped, ix), mapped)
+            sender() ! (unmapped, ix, mapped)
         }
       } catch {
         case e: Exception =>
