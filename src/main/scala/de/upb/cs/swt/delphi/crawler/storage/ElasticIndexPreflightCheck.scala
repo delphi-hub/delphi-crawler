@@ -17,6 +17,7 @@
 package de.upb.cs.swt.delphi.crawler.storage
 
 import akka.actor.ActorSystem
+import akka.http.scaladsl.model.StatusCodes
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.{ElasticClient, HttpClient, RequestFailure, RequestSuccess}
 import de.upb.cs.swt.delphi.crawler.{Configuration, PreflightCheck}
@@ -38,7 +39,7 @@ object ElasticIndexPreflightCheck extends PreflightCheck with ElasticIndexMainte
     val delphiIndexExists = Await.result(f, Duration.Inf)
 
     delphiIndexExists match {
-      case RequestSuccess(404, _, _, _) => createDelphiIndex(configuration)
+      case RequestSuccess(StatusCodes.NotFound.intValue, _, _, _) => createDelphiIndex(configuration)
       case RequestSuccess(_,_,_,_) => {
         isIndexCurrent(configuration) match {
           case true => Success(configuration) // This is fine
