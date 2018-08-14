@@ -21,7 +21,17 @@ import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.search.SearchResponse
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 
+/**
+  * Helps to determine if an artifact already exists in the elasticsearch database.
+  * @author Ben Hermann
+  */
 trait ArtifactExistsQuery {
+  /**
+    * Determines if a maven identifier was already inserted into the elasticsearch database.
+    * @param identifier
+    * @param client
+    * @return
+    */
   def exists(identifier : MavenIdentifier)(implicit client : ElasticClient) : Boolean = {
     client.execute {
       searchWithType(delphiProjectType) query must (

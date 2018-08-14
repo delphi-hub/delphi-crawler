@@ -18,6 +18,11 @@ package de.upb.cs.swt.delphi.crawler.storage
 
 import com.sksamuel.elastic4s.http.ElasticError
 
+/**
+  * Models an error thrown by the elasticsearch client
+  * @param error The error caught
+  * @author Ben Hermann
+  */
 class ElasticException(val error : ElasticError) extends Throwable {
   override def getMessage: String = error.reason
 }

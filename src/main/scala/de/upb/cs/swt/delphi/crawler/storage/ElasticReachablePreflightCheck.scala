@@ -25,7 +25,19 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 import scala.util.{Failure, Success, Try}
 
+/**
+  * A pre-flight check if elasticsearch is available or not
+  *
+  * @author Ben Hermann
+  */
 object ElasticReachablePreflightCheck extends PreflightCheck {
+  /**
+    * Takes the provided configuration and tried to access an elasticsearch server.
+    *
+    * @param configuration The configuration to access the elasticsearch server
+    * @param system The currently active actor system to bind the execution context
+    * @return
+    */
   override def check(configuration: Configuration)(implicit system: ActorSystem): Try[Configuration] = {
     implicit val ec : ExecutionContext = system.dispatcher
     lazy val client = ElasticClient(configuration.elasticsearchClientUri)
