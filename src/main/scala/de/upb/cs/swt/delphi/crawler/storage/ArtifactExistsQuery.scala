@@ -16,9 +16,9 @@
 
 package de.upb.cs.swt.delphi.crawler.storage
 
-import com.sksamuel.elastic4s.http.{ElasticClient, HttpClient, RequestSuccess}
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.search.SearchResponse
+import com.sksamuel.elastic4s.http.{ElasticClient, RequestSuccess}
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 
 /**
@@ -39,7 +39,7 @@ trait ArtifactExistsQuery {
       )
     }.await match {
       case RequestSuccess(_,_,_,SearchResponse(_, false, false, _, _, _, _, hits)) => (hits.total > 0)
-      case x => println(x); false
+      case _ => false
     }
   }
 }
