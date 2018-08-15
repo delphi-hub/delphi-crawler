@@ -15,31 +15,19 @@
 // limitations under the License.
 
 package de.upb.cs.swt.delphi.crawler.processing
-
 import java.net.URL
+import java.util.jar.JarInputStream
 
-import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
+import de.upb.cs.swt.delphi.crawler.tools.ClassStreamReader
 import org.opalj.br.analyses.Project
 
-class HermesActor(elasticActor : ActorRef) extends Actor with ActorLogging with OPALFunctionality with HermesFunctionality {
+trait OPALFunctionality {
 
-  def receive: PartialFunction[Any, Unit] = {
-    case m : MavenArtifact => {
-      log.info(s"Starting analysis for $m")
-
-      val project: Project[URL] = reifyProject(m)
-      val hermesResult: HermesResults = computeHermesResult(m, project)
-      elasticActor ! hermesResult
-    }
+  def reifyProject(m: MavenArtifact): Project[URL] = {
+    val project = new ClassStreamReader {}.createProject(m.identifier.toJarLocation.toURL,
+      new JarInputStream(m.jarFile.is))
+    m.jarFile.is.close()
+    project
   }
 }
-
-object HermesActor {
-  type HermesStatistics = scala.collection.Map[String, Double]
-  def props(elasticActor : ActorRef): Props = Props(new HermesActor(elasticActor))
-
-}
-
-case class HermesResults(identifier: MavenIdentifier, featureMap: Map[String, Int])
