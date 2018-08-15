@@ -31,7 +31,6 @@ import org.opalj.hermes._
 class HermesAnalyzer(project: Project[URL]) extends HermesCore {
 
 
-
   override def updateProjectData(f: => Unit): Unit = Hermes.synchronized {
     f
   }
@@ -57,22 +56,50 @@ class HermesAnalyzer(project: Project[URL]) extends HermesCore {
     List(ProjectConfiguration("project", projectSource.toString, Some(librarySource.toString), None))
   }
 
-  // TODO: At some point we might want to make that uniformly configurable
+
   override lazy val registeredQueries: List[Query] = {
-    List(
-      "org.opalj.hermes.queries.BytecodeInstructions",
-      "org.opalj.hermes.queries.ClassFileVersion",
-      "org.opalj.hermes.queries.SizeOfInheritanceTree",
-      "org.opalj.hermes.queries.ClassTypes"
-    ).map { s => Query(s, true) }
+    queries.values.flatten.map { s => Query(s, true) }.toList
   }
+
+  val VERY_SLOW = 'VERY_SLOW
+  val SLOW = 'SLOW
+  val NOT_SO_SLOW = 'NOT_SO_SLOW
+  val OK = 'OK
+  val FAST = 'FAST
+  val BLAZINGLY_FAST = 'BLAZINGLY_FAST
+
+
+  val queries = Map(
+    VERY_SLOW -> List("org.opalj.hermes.queries.Metrics",
+      "org.opalj.hermes.queries.MicroPatterns"),
+    SLOW -> List("org.opalj.hermes.queries.FieldAccessStatistics",
+      "org.opalj.hermes.queries.TrivialReflectionUsage",
+      "org.opalj.hermes.queries.BytecodeInstructions"),
+    NOT_SO_SLOW -> List("org.opalj.hermes.queries.RecursiveDataStructures",
+      "org.opalj.hermes.queries.MethodsWithoutReturns",
+      "org.opalj.hermes.queries.DebugInformation"),
+    OK -> List("org.opalj.hermes.queries.FanInFanOut",
+      "org.opalj.hermes.queries.GUIAPIUsage",
+      "org.opalj.hermes.queries.ClassLoaderAPIUsage",
+      "org.opalj.hermes.queries.JavaCryptoArchitectureUsage",
+      "org.opalj.hermes.queries.MethodTypes",
+      "org.opalj.hermes.queries.ReflectionAPIUsage",
+      "org.opalj.hermes.queries.SystemAPIUsage",
+      "org.opalj.hermes.queries.ThreadAPIUsage",
+      "org.opalj.hermes.queries.UnsafeAPIUsage",
+      "org.opalj.hermes.queries.JDBCAPIUsage",
+      "org.opalj.hermes.queries.BytecodeInstrumentationAPIUsage"),
+    FAST -> List("org.opalj.hermes.queries.ClassTypes"),
+    BLAZINGLY_FAST -> List("org.opalj.hermes.queries.SizeOfInheritanceTree",
+      "org.opalj.hermes.queries.ClassFileVersion"))
 }
+
 
 object HermesAnalyzer extends HermesCore {
 
-  def setConfig() = {
-    // TODO: Make this much nicer... Fake File?
-    initialize(new File("src/main/resources/application.conf"))
+  def setConfig(): Unit = {
+    var internalConfigurationFile = new File(this.getClass.getClassLoader.getResource("hermes.conf").getFile())
+    initialize(internalConfigurationFile)
   }
 
   override def updateProjectData(f: => Unit): Unit = Hermes.synchronized {

@@ -23,37 +23,46 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
 import de.upb.cs.swt.delphi.crawler.tools.ClassStreamReader
+import org.opalj.br.analyses.Project
 import org.opalj.hermes.{Feature, FeatureQuery}
 
 class HermesActor(elasticActor : ActorRef) extends Actor with ActorLogging {
 
 
-  def transformToFeatures(results: Iterator[(FeatureQuery, TraversableOnce[Feature[URL]])]) = {
+  def transformToFeatures(results: Iterator[(FeatureQuery, TraversableOnce[Feature[URL]])]): Map[String, Int] = {
     results.flatMap{ case(query, features: TraversableOnce[Feature[URL]]) => features.map { case feature => feature.id -> feature.count}} toMap
   }
 
-  def receive = {
+  def receive: PartialFunction[Any, Unit] = {
     case m : MavenArtifact => {
       log.info(s"Starting analysis for $m")
-      val project = new ClassStreamReader{}.createProject(m.identifier.toJarLocation.toURL,
-                                            new JarInputStream(m.jarFile.is))
+      val project: Project[URL] = reifyProject(m)
 
-      val results = new HermesAnalyzer(project).analyzeProject()
+      val hermesResult: HermesResults = computeHermesResult(m, project)
 
-      val featureMap = transformToFeatures(results)
-
-      val hermesResult = HermesResults(m.identifier, featureMap)
-
-      log.info(s"Feature map for ${m.identifier.toUniqueString} is ${featureMap.size}.")
       elasticActor ! hermesResult
     }
 
+  }
+
+  private def computeHermesResult(m: MavenArtifact, project: Project[URL]) = {
+    val results = new HermesAnalyzer(project).analyzeProject()
+    val featureMap = transformToFeatures(results)
+    val hermesResult = HermesResults(m.identifier, featureMap)
+    log.info(s"Feature map for ${hermesResult.identifier.toUniqueString} is ${hermesResult.featureMap.size}.")
+    hermesResult
+  }
+
+  private def reifyProject(m: MavenArtifact) = {
+    val project = new ClassStreamReader {}.createProject(m.identifier.toJarLocation.toURL,
+      new JarInputStream(m.jarFile.is))
+    project
   }
 }
 
 object HermesActor {
   type HermesStatistics = scala.collection.Map[String, Double]
-  def props(elasticActor : ActorRef) = Props(new HermesActor(elasticActor))
+  def props(elasticActor : ActorRef): Props = Props(new HermesActor(elasticActor))
 
 }
 
