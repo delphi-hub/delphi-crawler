@@ -56,5 +56,5 @@ class PreprocessingDispatchActor(configuration : Configuration, nextStep : Actor
 }
 
 object PreprocessingDispatchActor {
-  def props(configuration: Configuration, nextStep : ActorRef, elasticActor: ActorRef) = Props(new PreprocessingDispatchActor(configuration, nextStep, elasticActor))
+  def props(configuration: Configuration, nextStep : ActorRef, elasticActor: ActorRef): Props = Props(new PreprocessingDispatchActor(configuration, nextStep, elasticActor))
 }
