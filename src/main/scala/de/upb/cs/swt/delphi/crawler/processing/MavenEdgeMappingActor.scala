@@ -14,6 +14,13 @@ import org.apache.commons.io.FileUtils
 import org.opalj.ai.analyses.cg.UnresolvedMethodCall
 import org.opalj.br.analyses.Project
 
+/*
+ * This class uses static analysis to match unresolved method calls to dependencies using Maven.
+ *
+ * All dependencies are loaded into OPAL, then all each method is tested to see if it resolves in that
+ * dependency's scope. If it does, it is marked as belonging to that dependency.
+ */
+
 class MavenEdgeMappingActor(configuration: Configuration) extends Actor with ActorLogging{
   override def receive: Receive = {
     case (mx: Set[UnresolvedMethodCall], ix: Set[MavenIdentifier]) => {
@@ -46,12 +53,18 @@ class MavenEdgeMappingActor(configuration: Configuration) extends Actor with Act
             val mappedEdges = splitSet._1.map(m => MappedEdge(identifier, unresMCtoStr(m)))
             mappedEdges ++ edgeSearch(splitSet._2, mavenList.tail)
           } catch {
-            case e: java.io.FileNotFoundException =>
+            case e: java.io.FileNotFoundException => {
               log.info("The Maven coordinates '{}' (listed as a dependency) are invalid", mavenList.head.toString)
               edgeSearch(edgeSet, mavenList.tail)
-            case e: java.lang.IllegalArgumentException =>
+            }
+            case e: java.lang.IllegalArgumentException => {
               log.info("The Maven coordinates '{}' (listed as a dependency) could not be interpreted", mavenList.head.toString)
               edgeSearch(edgeSet, mavenList.tail)
+            }
+            case e: Exception => {
+              log.info("The analysis of dependency {} threw exception {}", mavenList.head.toString, e)
+              throw e
+            }
           }
         }
       }

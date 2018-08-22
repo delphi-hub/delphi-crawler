@@ -15,6 +15,13 @@ import org.opalj.br.analyses.{AnalysisModeConfigFactory, InstantiableClassesKey,
 import org.opalj.ai.analyses.cg.{CallGraphFactory, ExtVTACallGraphAlgorithmConfiguration}
 import org.opalj.ai.analyses.cg.CallGraphFactory.defaultEntryPointsForLibraries
 
+/*
+ * This class uses static analysis to determine which methods in a project belong to external libraries.
+ *
+ * OPAL is used to create a call graph for each library, and any unresolvable method calls are assumed to
+ * belong to some other library.
+ */
+
 class OpalActor(configuration: Configuration) extends Actor with ActorLogging{
 
   override def receive: Receive = {

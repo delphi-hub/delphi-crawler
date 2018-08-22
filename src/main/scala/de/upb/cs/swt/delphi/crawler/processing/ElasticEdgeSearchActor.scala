@@ -7,6 +7,13 @@ import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.processing.CallGraphStream.{MappedEdge, unresMCtoStr}
 import org.opalj.ai.analyses.cg.UnresolvedMethodCall
 
+/*
+ * This class matches unresolved method calls to dependencies using the local Elasticsearch server.
+ *
+ * All method call/dependency pairs are searched for in the database to see if they exist. If a pair does exist, that
+ * method is marked as belonging to that dependency.
+ */
+
 class ElasticEdgeSearchActor(client: HttpClient) extends Actor with ActorLogging{
 
   val maxBatchSize = 150

@@ -6,6 +6,13 @@ import com.sksamuel.elastic4s.http.HttpClient
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.processing.CallGraphStream.MappedEdge
 
+/*
+ * This class adds information about external calls to the local database.
+ *
+ * It receives methods with the library they belong to marked on them, collects all the methods in a library
+ * into a single map (defined in createLibraryMap), then adds these maps to a preexisting document.
+ */
+
 class ElasticCallGraphActor(client: HttpClient) extends Actor with ActorLogging {
   override def receive: Receive = {
     case (i: MavenIdentifier, ex: Set[MappedEdge]) => {

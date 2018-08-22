@@ -21,6 +21,20 @@ import org.opalj.ai.analyses.cg.UnresolvedMethodCall
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
 
+/*
+ * This component takes a Maven identifier, determines what methods it calls in each of it's dependencies, and
+ * stores each method called in each dependency in the Elasticsearch database.
+ *
+ * To do this, it delegates tasks to five actors, listed below. Check them for more implementation details.
+ *
+ * MavenDependencyActor and OpalActor find the dependencies and external calls for a project respectively,
+ * ElasticEdgeSearchActor and MavenEdgeMappingActor connect them together, and ElasticCallGraphActor adds
+ * all this information to the database.
+ *
+ * Note that to match unresolved method calls to dependencies, ElasticEdgeSearchActor is used first, and
+ * MavenEdgeMappingActor is used to match any calls ElasticEdgeSearchActor missed.
+ */
+
 class CallGraphStream(configuration: Configuration) extends Actor with ActorLogging {
 
   override def receive: Receive = {

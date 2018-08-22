@@ -12,7 +12,7 @@ class Configuration  {
   val mavenRepoBase: URI = new URI("http://repo1.maven.org/maven2/") // TODO: Create a local demo server "http://localhost:8881/maven2/"
   val controlServerPort : Int = 8882
   val throttle : Throttle = Throttle(10, 10 millis, 10, ThrottleMode.shaping)
-  val limit : Int = 1000
+  val limit : Int = 50
 
   val tempFileStorage : String = "temp/"
 

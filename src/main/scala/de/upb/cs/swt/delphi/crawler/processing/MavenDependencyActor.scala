@@ -11,6 +11,15 @@ import org.apache.maven.model.io.xpp3.MavenXpp3Reader
 
 import scala.collection.JavaConverters._
 
+/*
+ * This class extracts the dependencies for a project from a POM file.
+ * It uses Maven's Xpp3 to read XML files, and validates the coordinates extracted against Maven Central
+ * metadata to ensure that the coordinates are valid.
+ *
+ * Currently, it resolves project-level variables and soft version requirements.
+ * Any more exotic formats are seen as invalid and dropped.
+ */
+
 class MavenDependencyActor(configuration: Configuration) extends Actor with ActorLogging {
   val pomReader: MavenXpp3Reader = new MavenXpp3Reader()
   val metaReader: MetadataXpp3Reader = new MetadataXpp3Reader()
