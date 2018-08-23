@@ -14,12 +14,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package de.upb.cs.swt.delphi.crawler
+package de.upb.cs.swt.delphi.crawler.processing
+import java.net.URL
+import java.util.jar.JarInputStream
 
-import com.sksamuel.elastic4s.IndexAndType
+import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
+import de.upb.cs.swt.delphi.crawler.tools.ClassStreamReader
+import org.opalj.br.analyses.Project
 
-package object storage {
-  val delphi = "delphi"
-  val project = "project"
-  val delphiProjectType: IndexAndType = IndexAndType(delphi,project)
+trait OPALFunctionality {
+
+  def reifyProject(m: MavenArtifact): Project[URL] = {
+    val project = new ClassStreamReader {}.createProject(m.identifier.toJarLocation.toURL,
+      new JarInputStream(m.jarFile.is))
+    m.jarFile.is.close()
+    project
+  }
 }
