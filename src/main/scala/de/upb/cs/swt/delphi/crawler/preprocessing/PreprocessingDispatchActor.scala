@@ -20,7 +20,6 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import com.sksamuel.elastic4s.http.HttpClient
 import akka.util.Timeout
 import akka.pattern.ask
-import com.sksamuel.elastic4s.http.ElasticClient
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor

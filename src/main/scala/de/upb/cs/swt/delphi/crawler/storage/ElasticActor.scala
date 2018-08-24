@@ -19,7 +19,7 @@ package de.upb.cs.swt.delphi.crawler.storage
 import akka.actor.{Actor, ActorLogging, Props}
 
 import akka.event.LoggingAdapter
-import com.sksamuel.elastic4s.http.ElasticClient
+import com.sksamuel.elastic4s.http.HttpClient
 import de.upb.cs.swt.delphi.crawler.Identifier
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
@@ -30,8 +30,8 @@ import de.upb.cs.swt.delphi.crawler.processing.HermesResults
   * @param client The currently active elasticsearch client
   * @author Ben Hermann
   */
-class ElasticActor(client: ElasticClient) extends Actor with ActorLogging with ArtifactIdentityQuery with ElasticStoreQueries {
-  private implicit val c : ElasticClient = client
+class ElasticActor(client: HttpClient) extends Actor with ActorLogging with ArtifactIdentityQuery with ElasticStoreQueries {
+  private implicit val c : HttpClient = client
   private implicit val l : LoggingAdapter = log
 
   override def receive: PartialFunction[Any, Unit] = {

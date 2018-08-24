@@ -18,7 +18,7 @@ package de.upb.cs.swt.delphi.crawler
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import com.sksamuel.elastic4s.http.{ElasticClient, HttpClient}
+import com.sksamuel.elastic4s.http.{HttpClient}
 import de.upb.cs.swt.delphi.crawler.control.Server
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor.Start
@@ -65,7 +65,7 @@ object Crawler extends App with AppLogging {
 
   new Server(configuration.controlServerPort).start()
 
-  val elasticActor = system.actorOf(ElasticActor.props(ElasticClient(configuration.elasticsearchClientUri)))
+  val elasticActor = system.actorOf(ElasticActor.props(HttpClient(configuration.elasticsearchClientUri)))
   val hermesActor = system.actorOf(HermesActor.props(elasticActor))
   val processingDispatchActor = system.actorOf(ProcessingDispatchActor.props(hermesActor))
   val preprocessingDispatchActor = system.actorOf(PreprocessingDispatchActor.props(configuration, processingDispatchActor, elasticActor))

@@ -38,7 +38,7 @@ object ElasticIndexPreflightCheck extends PreflightCheck with ElasticIndexMainte
     }
     val delphiIndexExists = Await.result(f, Duration.Inf)
 
-    delphiIndexExists match {
+    delphiIndexExists.merge match {
       case RequestSuccess(StatusCodes.NotFound.intValue, _, _, _) => createDelphiIndex(configuration)
       case RequestSuccess(_,_,_,_) => {
         isIndexCurrent(configuration) match {
@@ -46,7 +46,7 @@ object ElasticIndexPreflightCheck extends PreflightCheck with ElasticIndexMainte
           case false => migrateIndex(configuration) // This needs some work
         }
       }
-      case Left(RequestFailure(_, _, _, e)) =>  Failure(new ElasticException(e))
+      case RequestFailure(_, _, _, e) =>  Failure(new ElasticException(e))
     }
   }
 }

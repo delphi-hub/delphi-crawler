@@ -42,7 +42,7 @@ class CallGraphStream(configuration: Configuration) extends Actor with ActorLogg
       graphActor forward m
   }
 
-  implicit val timeout: Timeout = 600 seconds
+  implicit val timeout: Timeout = 60 seconds
   val decider: Supervision.Decider = {
     case e: Exception => {log.warning("Call graph stream threw exception " + e); Supervision.Resume}
   }
