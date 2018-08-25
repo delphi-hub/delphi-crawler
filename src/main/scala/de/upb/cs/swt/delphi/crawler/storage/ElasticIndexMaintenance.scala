@@ -18,7 +18,7 @@ package de.upb.cs.swt.delphi.crawler.storage
 
 import akka.actor.ActorSystem
 import com.sksamuel.elastic4s.analyzers.KeywordAnalyzer
-import com.sksamuel.elastic4s.http.HttpClient
+import com.sksamuel.elastic4s.http.ElasticClient
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration}
 
@@ -30,7 +30,7 @@ trait ElasticIndexMaintenance extends AppLogging {
   def createDelphiIndex(configuration: Configuration)(implicit system: ActorSystem): Try[Configuration] = {
     log.warning("Could not find Delphi index. Creating it...")
 
-    val client = HttpClient(configuration.elasticsearchClientUri)
+    val client = ElasticClient(configuration.elasticsearchClientUri)
     val featureList = ElasticFeatureListMapping.getMapAsSeq
 
     val identifierFields = Seq(

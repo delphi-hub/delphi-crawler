@@ -10,7 +10,7 @@ import akka.stream.scaladsl.GraphDSL.Implicits._
 import akka.stream.scaladsl.{Flow, GraphDSL, Keep, RunnableGraph, Sink, Source}
 import akka.util.Timeout
 import akka.{Done, NotUsed}
-import com.sksamuel.elastic4s.http.HttpClient
+import com.sksamuel.elastic4s.http.ElasticClient
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.preprocessing.{JarFile, MavenDownloader, PomFile}
@@ -50,7 +50,7 @@ class CallGraphStream(configuration: Configuration) extends Actor with ActorLogg
   implicit val parallelism = 1
   implicit val ec = ExecutionContext.global
 
-  val esClient = HttpClient(configuration.elasticsearchClientUri)
+  val esClient = ElasticClient(configuration.elasticsearchClientUri)
 
   val mavenDependencyActor = context.actorOf(MavenDependencyActor.props(configuration))
   val opalActor: ActorRef = context.actorOf(OpalActor.props(configuration))

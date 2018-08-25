@@ -1,8 +1,9 @@
 package de.upb.cs.swt.delphi.crawler.processing
 
 import akka.actor.{Actor, ActorLogging, Props}
+import com.sksamuel.elastic4s.http.{ElasticClient, Response}
 import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.http.HttpClient
+import com.sksamuel.elastic4s.http.search.MultiSearchResponse
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.processing.CallGraphStream.{MappedEdge, unresMCtoStr}
 import org.opalj.ai.analyses.cg.UnresolvedMethodCall
@@ -14,7 +15,7 @@ import org.opalj.ai.analyses.cg.UnresolvedMethodCall
  * method is marked as belonging to that dependency.
  */
 
-class ElasticEdgeSearchActor(client: HttpClient) extends Actor with ActorLogging{
+class ElasticEdgeSearchActor(client: ElasticClient) extends Actor with ActorLogging{
 
   val maxBatchSize = 150
 
@@ -61,13 +62,13 @@ class ElasticEdgeSearchActor(client: HttpClient) extends Actor with ActorLogging
     }
 
     def searchEsDb(calls: List[UnresolvedMethodCall], id: MavenIdentifier): (UnresolvedMethodCall) => Boolean = {
-      val resp = client.execute{
+      val resp: Response[MultiSearchResponse] = client.execute{
         multi(
           for(call <- calls) yield genSearchDef(call, id)
         )
       }.await
 
-      val result = resp.right.get.result.items
+      val result = resp.result.items
       val hitIndices = result.filter(_.response.isRight).filter(_.response.right.get.totalHits > 0).map(_.index)
       val hits = for (i <- hitIndices) yield calls(i)
 
@@ -90,5 +91,5 @@ class ElasticEdgeSearchActor(client: HttpClient) extends Actor with ActorLogging
 }
 
 object ElasticEdgeSearchActor {
-  def props(client: HttpClient) = Props(new ElasticEdgeSearchActor(client))
+  def props(client: ElasticClient) = Props(new ElasticEdgeSearchActor(client))
 }

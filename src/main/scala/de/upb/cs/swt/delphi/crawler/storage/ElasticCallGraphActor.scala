@@ -1,8 +1,8 @@
 package de.upb.cs.swt.delphi.crawler.storage
 
 import akka.actor.{Actor, ActorLogging, Props}
+import com.sksamuel.elastic4s.http.ElasticClient
 import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.http.HttpClient
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.processing.CallGraphStream.MappedEdge
 
@@ -13,7 +13,7 @@ import de.upb.cs.swt.delphi.crawler.processing.CallGraphStream.MappedEdge
  * into a single map (defined in createLibraryMap), then adds these maps to a preexisting document.
  */
 
-class ElasticCallGraphActor(client: HttpClient) extends Actor with ActorLogging {
+class ElasticCallGraphActor(client: ElasticClient) extends Actor with ActorLogging {
   override def receive: Receive = {
     case (i: MavenIdentifier, ex: Set[MappedEdge]) => {
       try {
@@ -48,8 +48,9 @@ class ElasticCallGraphActor(client: HttpClient) extends Actor with ActorLogging 
           )
         }.sourceInclude("_id")
       }.await
-      if (resp.isRight) {
-        val hits = resp.right.get.result.hits
+
+      if (resp.isSuccess) {
+        val hits = resp.result.hits
         if (hits.total > 0) {
           hits.hits.head.id
         } else {
@@ -62,7 +63,7 @@ class ElasticCallGraphActor(client: HttpClient) extends Actor with ActorLogging 
                 "artifactId" -> id.artifactId,
                 "version" -> id.version))
           }.await
-          resp.right.get.result.id
+          resp.result.id
         }
       } else {
         throw new Exception("Elasticsearch server cannot be reached - call graph for " + id.toString +" lost.")
@@ -91,5 +92,5 @@ class ElasticCallGraphActor(client: HttpClient) extends Actor with ActorLogging 
 }
 
 object ElasticCallGraphActor{
-  def props(client: HttpClient) = Props(new ElasticCallGraphActor(client))
+  def props(client: ElasticClient) = Props(new ElasticCallGraphActor(client))
 }

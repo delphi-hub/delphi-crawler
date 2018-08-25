@@ -18,7 +18,7 @@ package de.upb.cs.swt.delphi.crawler.discovery.maven
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.stream.ActorMaterializer
-import com.sksamuel.elastic4s.http.HttpClient
+import com.sksamuel.elastic4s.http.ElasticClient
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor.Start
 import de.upb.cs.swt.delphi.crawler.storage.ArtifactExistsQuery
@@ -37,7 +37,7 @@ class MavenCrawlActor(configuration: Configuration, nextStep : ActorRef)
       log.info("Starting Maven discovery process...")
 
       implicit val materializer = ActorMaterializer()
-      implicit val client = HttpClient(configuration.elasticsearchClientUri)
+      implicit val client = ElasticClient(configuration.elasticsearchClientUri)
       implicit val logger = log
 
       createSource(configuration.mavenRepoBase)

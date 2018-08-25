@@ -19,17 +19,17 @@ package de.upb.cs.swt.delphi.crawler.storage
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.http.{HttpClient, RequestFailure, RequestSuccess}
+import com.sksamuel.elastic4s.http.{ElasticClient, RequestFailure, RequestSuccess}
 import de.upb.cs.swt.delphi.crawler.{Configuration, PreflightCheck}
 
-import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext}
 import scala.util.{Failure, Success, Try}
 
 object ElasticIndexPreflightCheck extends PreflightCheck with ElasticIndexMaintenance {
   override def check(configuration: Configuration)(implicit system: ActorSystem): Try[Configuration] = {
     implicit val ec : ExecutionContext = system.dispatcher
-    lazy val client = HttpClient(configuration.elasticsearchClientUri)
+    lazy val client = ElasticClient(configuration.elasticsearchClientUri)
 
     val f = client.execute {
       indexExists("delphi")
@@ -38,7 +38,7 @@ object ElasticIndexPreflightCheck extends PreflightCheck with ElasticIndexMainte
     }
     val delphiIndexExists = Await.result(f, Duration.Inf)
 
-    delphiIndexExists.merge match {
+    delphiIndexExists match {
       case RequestSuccess(StatusCodes.NotFound.intValue, _, _, _) => createDelphiIndex(configuration)
       case RequestSuccess(_,_,_,_) => {
         isIndexCurrent(configuration) match {
