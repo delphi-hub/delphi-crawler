@@ -1,19 +1,19 @@
 package de.upb.cs.swt.delphi.crawler.processing
 
-import java.io.{BufferedInputStream, File, InputStream}
+import java.io.{File, InputStream}
 import java.net.URL
 import java.util.jar.JarInputStream
 
 import akka.actor.{Actor, ActorLogging, Props}
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.preprocessing.JarFile
-import de.upb.cs.swt.delphi.crawler.processing.OpalActor.TempFile
 import de.upb.cs.swt.delphi.crawler.tools.ClassStreamReader
-import org.apache.commons.io.FileUtils
 import org.opalj.AnalysisModes
-import org.opalj.br.analyses.{AnalysisModeConfigFactory, InstantiableClassesKey, Project}
+import org.opalj.br.analyses.AnalysisModeConfigFactory
 import org.opalj.ai.analyses.cg.{CallGraphFactory, ExtVTACallGraphAlgorithmConfiguration}
 import org.opalj.ai.analyses.cg.CallGraphFactory.defaultEntryPointsForLibraries
+
+import scala.util.Try
 
 /*
  * This class uses static analysis to determine which methods in a project belong to external libraries.
@@ -26,10 +26,9 @@ class OpalActor(configuration: Configuration) extends Actor with ActorLogging{
 
   override def receive: Receive = {
     case JarFile(is, url) => {
-      try {
-        findCalls(is, url)
-      } catch {
-        case e: Exception => {
+      Try(findCalls(is, url)) match {
+        case util.Success(mx) => sender() ! mx
+        case util.Failure(e) => {
           log.warning("Opal actor threw exception " + e)
           sender() ! akka.actor.Status.Failure(e)
         }
@@ -45,9 +44,7 @@ class OpalActor(configuration: Configuration) extends Actor with ActorLogging{
     val config = new ExtVTACallGraphAlgorithmConfiguration(cpaP)
     val callGraph = CallGraphFactory.create(cpaP, entryPoints, config)
 
-    val libraryCalls = callGraph.unresolvedMethodCalls.toSet
-
-    sender() ! libraryCalls
+    callGraph.unresolvedMethodCalls.toSet
   }
 }
 

@@ -6,6 +6,8 @@ import com.sksamuel.elastic4s.http.ElasticDsl._
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.processing.CallGraphStream.MappedEdge
 
+import scala.util.Try
+
 /*
  * This class adds information about external calls to the local database.
  *
@@ -16,14 +18,43 @@ import de.upb.cs.swt.delphi.crawler.processing.CallGraphStream.MappedEdge
 class ElasticCallGraphActor(client: ElasticClient) extends Actor with ActorLogging {
   override def receive: Receive = {
     case (i: MavenIdentifier, ex: Set[MappedEdge]) => {
-      try {
-        pushEdges(i, ex)
-      } catch {
-        case e: Exception => {
+      Try(pushEdges(i, ex)) match {
+        case util.Failure(e) => {
           log.warning("Call graph pusher threw exception " + e)
           sender() ! akka.actor.Status.Failure(e)
         }
+        case util.Success(_) =>
       }
+    }
+  }
+
+  def findESindex(id: MavenIdentifier) = {
+    val resp = client.execute {
+      search("delphi").query {
+        boolQuery().must(
+          termQuery("name", id.toUniqueString)
+        )
+      }.sourceInclude("_id")
+    }.await
+
+    if (resp.isSuccess) {
+      val hits = resp.result.hits
+      if (hits.total > 0) {
+        hits.hits.headOption.getOrElse(throw new Exception).id
+      } else {
+        log.warning("WARNING: No document for mapped project {} exists! Creating new document...", id.toString)
+        val resp = client.execute {
+          indexInto("delphi" / "project").fields("name" -> id.toUniqueString,
+            "source" -> "Maven",
+            "identifier" -> Map(
+              "groupId" -> id.groupId,
+              "artifactId" -> id.artifactId,
+              "version" -> id.version))
+        }.await
+        resp.result.id
+      }
+    } else {
+      throw new Exception("Elasticsearch server cannot be reached - call graph for " + id.toString +" lost.")
     }
   }
 
@@ -31,42 +62,13 @@ class ElasticCallGraphActor(client: ElasticClient) extends Actor with ActorLoggi
     case class MappedLibrary(library: MavenIdentifier, methods: Set[String])
 
     def mergeEdges(edges: Set[MappedEdge]): Set[MappedLibrary] = {
-      if (edges.isEmpty) {
-        Set[MappedLibrary]()
-      } else {
-        val splitSet = edges.partition(_.library.equals(edges.head.library))
-        val library = MappedLibrary(edges.head.library, splitSet._1.map(_.method))
-        mergeEdges(splitSet._2) + library
-      }
-    }
-
-    def findESindex(id: MavenIdentifier) = {
-      val resp = client.execute {
-        search("delphi").query {
-          boolQuery().must(
-            termQuery("name", id.toUniqueString)
-          )
-        }.sourceInclude("_id")
-      }.await
-
-      if (resp.isSuccess) {
-        val hits = resp.result.hits
-        if (hits.total > 0) {
-          hits.hits.head.id
-        } else {
-          log.warning("WARNING: No document for mapped project {} exists! Creating new document...", id.toString)
-          val resp = client.execute {
-            indexInto("delphi" / "project").fields("name" -> id.toUniqueString,
-              "source" -> "Maven",
-              "identifier" -> Map(
-                "groupId" -> id.groupId,
-                "artifactId" -> id.artifactId,
-                "version" -> id.version))
-          }.await
-          resp.result.id
-        }
-      } else {
-        throw new Exception("Elasticsearch server cannot be reached - call graph for " + id.toString +" lost.")
+      edges.headOption match {
+        case None => Set[MappedLibrary]()
+        case Some(frontEdge) =>
+          edges.partition(_.library.equals(frontEdge.library)) match { case (hits, misses) =>
+            val library = MappedLibrary(frontEdge.library, hits.map(_.method))
+            mergeEdges(misses) + library
+          }
       }
     }
 

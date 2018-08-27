@@ -20,6 +20,7 @@ import org.opalj.ai.analyses.cg.UnresolvedMethodCall
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
+import scala.util.Try
 
 /*
  * This component takes a Maven identifier, determines what methods it calls in each of it's dependencies, and
@@ -81,7 +82,7 @@ class CallGraphStream(configuration: Configuration) extends Actor with ActorLogg
       val fileGen = b.add(fileGenFlow)
       val edgeGen = b.add(edgeSetFlow)
 
-      fileGen.filter(t => (t._3.artifactId != null)) ~> dependencyConverter.filter{case (ix, jf, i) =>
+      fileGen ~> dependencyConverter.filter{case (ix, jf, i) =>
         if(ix.isEmpty) { log.info(i.toString + " not mapped, incomplete POM file."); false }
         else { log.info(i.toString + " mapped, valid POM file."); true }} ~> edgeGen.in
 
@@ -107,13 +108,13 @@ class CallGraphStream(configuration: Configuration) extends Actor with ActorLogg
   })
 
   def fetchFiles(mavenIdentifier: MavenIdentifier): (PomFile, JarFile, MavenIdentifier) = {
-    try {
-      val downloader = new MavenDownloader(mavenIdentifier)
-      (downloader.downloadPom(), downloader.downloadJar(), mavenIdentifier)
-    } catch {
-      case e: FileNotFoundException => {
+    val downloader = new MavenDownloader(mavenIdentifier)
+    def files = Try((downloader.downloadPom(), downloader.downloadJar(), mavenIdentifier))
+    files match {
+      case util.Success(f) => f
+      case util.Failure(e: FileNotFoundException) => {
         log.info("{} not mapped, missing POM file", mavenIdentifier.toString)
-        (PomFile(null), JarFile(null, null), MavenIdentifier(null, null, null, null))  //There might be a more elegant way of doing this
+        throw e
       }
     }
   }
