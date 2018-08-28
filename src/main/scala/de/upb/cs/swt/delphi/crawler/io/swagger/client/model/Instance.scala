@@ -7,7 +7,6 @@
 package de.upb.cs.swt.delphi.crawler.io.swagger.client.model
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
-import de.upb.cs.swt.delphi.crawler.io.swagger.client.core.ApiModel
 import spray.json._
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
@@ -35,7 +34,7 @@ final case class Instance (
   name: Option[String],
   /* Component Type */
   componentType: Option[InstanceEnums.ComponentType]
-) extends ApiModel
+)
 
 object InstanceEnums {
 
