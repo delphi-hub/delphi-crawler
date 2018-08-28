@@ -36,7 +36,7 @@ class ElasticEdgeSearchActor(client: ElasticClient) extends Actor with ActorLogg
 
   //Splits the set of methods in "batch" sized chucks before passing them to the search function, to prevent
   //  the construction of a search too large to be run
-  private def segmentFun(fx: ((Set[UnresolvedMethodCall], List[MavenIdentifier]) => (Set[UnresolvedMethodCall], Set[MappedEdge])), batch: Int)
+  private def segmentFun(fx: (Set[UnresolvedMethodCall], List[MavenIdentifier]) => (Set[UnresolvedMethodCall], Set[MappedEdge]), batch: Int)
                      (mx: Set[UnresolvedMethodCall], ix: List[MavenIdentifier]): (Set[UnresolvedMethodCall], Set[MappedEdge]) = {
     if (mx.size > batch) {
       mx.splitAt(batch) match { case (currSeg, restSeg) =>
@@ -62,7 +62,7 @@ class ElasticEdgeSearchActor(client: ElasticClient) extends Actor with ActorLogg
     }
   }
 
-  def searchEsDb(calls: List[UnresolvedMethodCall], id: MavenIdentifier): (UnresolvedMethodCall) => Boolean = {
+  def searchEsDb(calls: List[UnresolvedMethodCall], id: MavenIdentifier): UnresolvedMethodCall => Boolean = {
     val resp: Response[MultiSearchResponse] = client.execute{
       multi(
         for(call <- calls) yield genSearchDef(call, id)
@@ -82,7 +82,6 @@ class ElasticEdgeSearchActor(client: ElasticClient) extends Actor with ActorLogg
     ids.headOption match {
       case None => (calls, Set[MappedEdge]())
       case Some(id) => {
-        val id = ids.head
         def exists = searchEsDb(calls.toList, id)
         calls.partition(exists) match {
           case (hits, misses) => {
