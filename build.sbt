@@ -33,8 +33,9 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
   "com.typesafe.akka" %% "akka-http" % "10.1.3",
-  "org.json4s" %% "json4s-jackson" % "3.6.0",
-  "io.swagger" % "swagger-core" % "1.5.21",
+  "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.8",
+  "org.json4s" %% "json4s-jackson" % "3.5.3",
+  "io.swagger" % "swagger-core" % "1.5.15",
   "io.spray" % "spray-client" % "1.3.1"
 )
 
@@ -56,6 +57,7 @@ libraryDependencies ++= Seq(
 )
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
+resolvers ++= Seq(Resolver.mavenLocal)
 
 val opalVersion = "1.0.0"
 libraryDependencies ++= Seq(

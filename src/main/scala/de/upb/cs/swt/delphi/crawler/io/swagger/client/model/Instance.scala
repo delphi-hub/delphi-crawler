@@ -6,11 +6,29 @@
 
 package de.upb.cs.swt.delphi.crawler.io.swagger.client.model
 
-import org.joda.time.DateTime
-import java.util.UUID
+import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import de.upb.cs.swt.delphi.crawler.io.swagger.client.core.ApiModel
+import spray.json._
 
-case class Instance (
+trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
+  implicit val componentTypeFormat = new JsonFormat[InstanceEnums.ComponentType] {
+    def write(compType : InstanceEnums.ComponentType) = JsString(compType.toString())
+
+    def read(value: JsValue) = value match {
+      case JsString(s) => s match {
+        case "Crawler" => InstanceEnums.ComponentType.Crawler
+        case "WebApi" => InstanceEnums.ComponentType.WebApi
+        case "WebApp" => InstanceEnums.ComponentType.WebApp
+        case "DelphiManagement" => InstanceEnums.ComponentType.DelphiManagement
+        case x => throw new RuntimeException(s"Unexpected string value $x for component type.")
+      }
+      case y => throw new RuntimeException(s"Unexpected type $y while deserializing component type.")
+    }
+  }
+  implicit val instanceFormat = jsonFormat5(Instance)
+}
+
+final case class Instance (
   iD: Option[Long],
   iP: Option[String],
   portnumber: Option[Long],
