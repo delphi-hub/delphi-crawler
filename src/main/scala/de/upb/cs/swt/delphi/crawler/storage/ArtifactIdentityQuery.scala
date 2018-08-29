@@ -16,9 +16,9 @@
 
 package de.upb.cs.swt.delphi.crawler.storage
 
-import com.sksamuel.elastic4s.http.{ElasticClient, HttpClient, RequestSuccess}
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.search.SearchResponse
+import com.sksamuel.elastic4s.http.{ElasticClient, RequestSuccess}
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 
 trait ArtifactIdentityQuery {

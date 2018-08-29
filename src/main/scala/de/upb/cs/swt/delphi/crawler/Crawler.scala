@@ -18,7 +18,7 @@ package de.upb.cs.swt.delphi.crawler
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import com.sksamuel.elastic4s.http.{ElasticClient, HttpClient}
+import com.sksamuel.elastic4s.http.ElasticClient
 import de.upb.cs.swt.delphi.crawler.control.Server
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor.Start

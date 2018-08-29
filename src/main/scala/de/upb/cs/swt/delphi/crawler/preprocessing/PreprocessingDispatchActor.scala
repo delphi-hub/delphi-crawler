@@ -17,24 +17,35 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import akka.util.Timeout
 import akka.pattern.ask
+import akka.routing.{BalancingPool, RoundRobinPool}
+import akka.util.Timeout
 import com.sksamuel.elastic4s.http.ElasticClient
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
+import de.upb.cs.swt.delphi.crawler.processing.CallGraphStream
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
 
 import scala.concurrent.duration._
-import scala.util.{Success, Try}
+import scala.util.Success
 
 class PreprocessingDispatchActor(configuration : Configuration, nextStep : ActorRef, elasticActor : ActorRef) extends Actor with ActorLogging {
+
+  val elasticPool = context.actorOf(RoundRobinPool(configuration.elasticActorPoolSize)
+    .props(ElasticActor.props(ElasticClient(configuration.elasticsearchClientUri))))
+  val callGraphPool = context.actorOf(BalancingPool(configuration.callGraphStreamPoolSize)
+    .props(CallGraphStream.props(configuration)))
+
   override def receive: Receive = {
     case m : MavenIdentifier => {
 
       implicit val ec = context.dispatcher
 
       // Start creation of base record
-      elasticActor forward m
+      elasticPool forward m
+
+      // Create call graphs for each project
+      callGraphPool ! m
 
       // Transform maven identifier into maven artifact
       implicit val timeout = Timeout(5.seconds)

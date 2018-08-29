@@ -17,8 +17,8 @@
 package de.upb.cs.swt.delphi.crawler.storage
 
 import akka.actor.ActorSystem
+import com.sksamuel.elastic4s.http.ElasticClient
 import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.http.{ElasticClient, HttpClient}
 import de.upb.cs.swt.delphi.crawler.{Configuration, PreflightCheck}
 
 import scala.concurrent.duration._

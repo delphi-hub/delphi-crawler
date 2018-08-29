@@ -18,7 +18,7 @@ package de.upb.cs.swt.delphi.crawler
 
 import akka.actor.{ActorRef, ActorSystem}
 import com.sksamuel.elastic4s.ElasticsearchClientUri
-import com.sksamuel.elastic4s.http.{ElasticClient, HttpClient}
+import com.sksamuel.elastic4s.http.ElasticClient
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
 
 /**

@@ -19,11 +19,11 @@ package de.upb.cs.swt.delphi.crawler.storage
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.http.{ElasticClient, HttpClient, RequestFailure, RequestSuccess}
+import com.sksamuel.elastic4s.http.{ElasticClient, RequestFailure, RequestSuccess}
 import de.upb.cs.swt.delphi.crawler.{Configuration, PreflightCheck}
 
-import scala.concurrent.{Await, ExecutionContext}
 import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, ExecutionContext}
 import scala.util.{Failure, Success, Try}
 
 object ElasticIndexPreflightCheck extends PreflightCheck with ElasticIndexMaintenance {

@@ -30,6 +30,11 @@ class Configuration  {
   val limit : Int = 50
   val throttle : Throttle = Throttle(5, 30 second, 5, ThrottleMode.shaping)
 
+  val tempFileStorage : String = "temp/"
+
+  val elasticActorPoolSize : Int = 4
+  val callGraphStreamPoolSize : Int = 4
+
   case class Throttle(element : Int, per : FiniteDuration, maxBurst : Int, mode : ThrottleMode)
 }
 

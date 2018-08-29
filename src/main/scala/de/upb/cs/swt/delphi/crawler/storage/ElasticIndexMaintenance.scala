@@ -18,7 +18,7 @@ package de.upb.cs.swt.delphi.crawler.storage
 
 import akka.actor.ActorSystem
 import com.sksamuel.elastic4s.analyzers.KeywordAnalyzer
-import com.sksamuel.elastic4s.http.{ElasticClient, HttpClient}
+import com.sksamuel.elastic4s.http.ElasticClient
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration}
 

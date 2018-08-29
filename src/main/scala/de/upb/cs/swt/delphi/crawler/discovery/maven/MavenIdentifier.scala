@@ -25,6 +25,8 @@ case class MavenIdentifier(val repository: String, val groupId: String, val arti
     repository + ":" + groupId + ":" + artifactId + ":" + version
   }
 
+  override val toString: String = groupId + ":" + artifactId + ":" + version
+
   def toJarLocation : URI = {
     constructArtifactBaseUri().resolve(artifactId + "-" + version + ".jar")
   }
