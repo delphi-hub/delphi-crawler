@@ -27,8 +27,14 @@ object InstanceRegistry extends JsonSupport with AppLogging
 
     Await.result(postInstance(instance, configuration.instanceRegistryUri + "/register") map {response =>
       if(response.status == StatusCodes.OK){
-        log.info("Successfully registered at Instance Registry.")
-        true
+        Await.result(Unmarshal(response.entity).to[String] map { assignedID =>
+          val id = assignedID.toLong
+          log.info(s"Successfully registered at Instance Registry, got ID $id.")
+          true
+        } recover { case ex =>
+          log.warning(s"Failed to read assigned ID from Instance Registry, exception: $ex")
+          false
+        }, Duration.Inf)
       }
       else {
         val statuscode = response.status
@@ -45,7 +51,7 @@ object InstanceRegistry extends JsonSupport with AppLogging
   def retrieveElasticSearchInstance(configuration: Configuration) : Try[String] = {
     if(!configuration.usingInstanceRegistry) Failure(new RuntimeException("Cannot get ElasticSearch instance from Instance Registry, no Instance Registry available."))
     else {
-      val request = HttpRequest(method = HttpMethods.GET, configuration.instanceRegistryUri + "/matchingInstance?ComponentType=Crawler")
+      val request = HttpRequest(method = HttpMethods.GET, configuration.instanceRegistryUri + "/matchingInstance?ComponentType=ElasticSearch")
 
       Await.result(Http(system).singleRequest(request) map {response =>
         val status = response.status
@@ -53,8 +59,11 @@ object InstanceRegistry extends JsonSupport with AppLogging
 
           Await.result(Unmarshal(response.entity).to[Instance] map {instance =>
             val elasticIP = instance.iP
-            log.info(s"Instance Registry assigned ElasticSearch instance at $elasticIP")
-            Success(elasticIP.get)
+            log.info(s"Instance Registry assigned ElasticSearch instance at ${elasticIP.getOrElse("None")}")
+            elasticIP match {
+              case Some(ip) => Success(ip + ":" + instance.portnumber.get)
+              case None => Failure(new RuntimeException("Response from Instance Registry did not contain an IP"))
+            }
           } recover {case ex =>
             log.warning(s"Failed to read response from Instance Registry, exception: $ex")
             Failure(ex)

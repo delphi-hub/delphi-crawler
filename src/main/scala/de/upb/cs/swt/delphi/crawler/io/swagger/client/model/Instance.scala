@@ -19,6 +19,7 @@ trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
         case "WebApi" => InstanceEnums.ComponentType.WebApi
         case "WebApp" => InstanceEnums.ComponentType.WebApp
         case "DelphiManagement" => InstanceEnums.ComponentType.DelphiManagement
+        case "ElasticSearch" => InstanceEnums.ComponentType.ElasticSearch
         case x => throw new RuntimeException(s"Unexpected string value $x for component type.")
       }
       case y => throw new RuntimeException(s"Unexpected type $y while deserializing component type.")
@@ -44,6 +45,7 @@ object InstanceEnums {
     val WebApi = Value("WebApi")
     val WebApp = Value("WebApp")
     val DelphiManagement = Value("DelphiManagement")
+    val ElasticSearch = Value("ElasticSearch")
   }
 
 }
