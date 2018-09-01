@@ -72,7 +72,7 @@ object InstanceRegistry extends JsonSupport with AppLogging
   }
 
   def sendMatchingResult(isElasticSearchReachable : Boolean, configuration: Configuration) : Try[Unit] = {
-    if(!configuration.usingInstanceRegistry) Failure
+    if(!configuration.usingInstanceRegistry) Failure(new RuntimeException("Cannot get ElasticSearch instance from Instance Registry, no Instance Registry available."))
     //TODO: Use ID!
     val instance = createInstance(None,configuration.controlServerPort, configuration.instanceName)
 
@@ -89,7 +89,7 @@ object InstanceRegistry extends JsonSupport with AppLogging
       }
 
     } recover {case ex =>
-      log.warning(s"Failed to post matching result tot Instance Registry, exception: $ex")
+      log.warning(s"Failed to post matching result to Instance Registry, exception: $ex")
       Failure(new RuntimeException(s"Failed to post matching result tot Instance Registry, exception: $ex"))
     }, Duration.Inf)
   }

@@ -33,11 +33,10 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
   "com.typesafe.akka" %% "akka-http" % "10.1.3",
-  "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.8",
-  "org.json4s" %% "json4s-jackson" % "3.5.3",
-  "io.swagger" % "swagger-core" % "1.5.15",
-  "io.spray" % "spray-client" % "1.3.1"
+  "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.8"
 )
+
+libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.3"
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
 
