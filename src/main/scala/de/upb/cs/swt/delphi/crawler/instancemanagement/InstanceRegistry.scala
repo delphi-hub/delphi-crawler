@@ -1,3 +1,19 @@
+// Copyright (C) 2018 The Delphi Team.
+// See the LICENCE file distributed with this work for additional
+// information regarding copyright ownership.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package de.upb.cs.swt.delphi.crawler.instancemanagement
 
 import java.net.InetAddress
@@ -49,8 +65,9 @@ object InstanceRegistry extends JsonSupport with AppLogging
   }
 
   def retrieveElasticSearchInstance(configuration: Configuration) : Try[Instance] = {
-    if(!configuration.usingInstanceRegistry) Failure(new RuntimeException("Cannot get ElasticSearch instance from Instance Registry, no Instance Registry available."))
-    else {
+    if(!configuration.usingInstanceRegistry) {
+      Failure(new RuntimeException("Cannot get ElasticSearch instance from Instance Registry, no Instance Registry available."))
+    } else {
       val request = HttpRequest(method = HttpMethods.GET, configuration.instanceRegistryUri + "/matchingInstance?ComponentType=ElasticSearch")
 
       Await.result(Http(system).singleRequest(request) map {response =>
@@ -78,50 +95,59 @@ object InstanceRegistry extends JsonSupport with AppLogging
   }
 
   def sendMatchingResult(isElasticSearchReachable : Boolean, configuration: Configuration) : Try[Unit] = {
-    if(!configuration.usingInstanceRegistry) Failure(new RuntimeException("Cannot post matching result to Instance Registry, no Instance Registry available."))
-    if(configuration.elasticsearchInstance.iD.isEmpty) Failure(new RuntimeException("Cannot post matching result to Instance Registry, assigned ElasticSearch instance has no ID."))
+    if(!configuration.usingInstanceRegistry) {
+      Failure(new RuntimeException("Cannot post matching result to Instance Registry, no Instance Registry available."))
+    } else {
+      if(configuration.elasticsearchInstance.iD.isEmpty) {
+        Failure(new RuntimeException("Cannot post matching result to Instance Registry, assigned ElasticSearch instance has no ID."))
+      } else {
+        val IdToPost = configuration.elasticsearchInstance.iD.get
+        val request = HttpRequest(method = HttpMethods.POST, configuration.instanceRegistryUri + s"/matchingResult?Id=$IdToPost&MatchingSuccessful=$isElasticSearchReachable")
 
-    val IdToPost = configuration.elasticsearchInstance.iD.get
-    val request = HttpRequest(method = HttpMethods.POST, configuration.instanceRegistryUri + s"/matchingResult?Id=$IdToPost&MatchingSuccessful=$isElasticSearchReachable")
+        Await.result(Http(system).singleRequest(request) map {response =>
+          if(response.status == StatusCodes.OK){
+            log.info("Successfully posted matching result to Instance Registry.")
+            Success()
+          }
+          else {
+            val statuscode = response.status
+            log.warning(s"Failed to post matching result to Instance Registry, server returned $statuscode")
+            Failure(new RuntimeException(s"Failed to post matching result to Instance Registry, server returned $statuscode"))
+          }
 
-    Await.result(Http(system).singleRequest(request) map {response =>
-      if(response.status == StatusCodes.OK){
-        log.info("Successfully posted matching result to Instance Registry.")
-        Success()
+        } recover {case ex =>
+          log.warning(s"Failed to post matching result to Instance Registry, exception: $ex")
+          Failure(new RuntimeException(s"Failed to post matching result tot Instance Registry, exception: $ex"))
+        }, Duration.Inf)
       }
-      else {
-        val statuscode = response.status
-        log.warning(s"Failed to post matching result to Instance Registry, server returned $statuscode")
-        Failure(new RuntimeException(s"Failed to post matching result to Instance Registry, server returned $statuscode"))
-      }
+    }
 
-    } recover {case ex =>
-      log.warning(s"Failed to post matching result to Instance Registry, exception: $ex")
-      Failure(new RuntimeException(s"Failed to post matching result tot Instance Registry, exception: $ex"))
-    }, Duration.Inf)
   }
 
   def deregister(configuration: Configuration) : Try[Unit] = {
-    if(!configuration.usingInstanceRegistry) Failure(new RuntimeException("Cannot deregister from Instance Registry, no Instance Registry available."))
-    val id : Long = configuration.assignedID.get
+    if(!configuration.usingInstanceRegistry){
+      Failure(new RuntimeException("Cannot deregister from Instance Registry, no Instance Registry available."))
+    } else {
+      val id : Long = configuration.assignedID.get
 
-    val request = HttpRequest(method = HttpMethods.POST, configuration.instanceRegistryUri + s"/deregister?Id=$id")
+      val request = HttpRequest(method = HttpMethods.POST, configuration.instanceRegistryUri + s"/deregister?Id=$id")
 
-    Await.result(Http(system).singleRequest(request) map {response =>
-      if(response.status == StatusCodes.OK){
-        log.info("Successfully deregistered Instance Registry.")
-        Success()
-      }
-      else {
-        val statuscode = response.status
-        log.warning(s"Failed to deregister from Instance Registry, server returned $statuscode")
-        Failure(new RuntimeException(s"Failed to deregister from Instance Registry, server returned $statuscode"))
-      }
+      Await.result(Http(system).singleRequest(request) map {response =>
+        if(response.status == StatusCodes.OK){
+          log.info("Successfully deregistered from Instance Registry.")
+          Success()
+        }
+        else {
+          val statuscode = response.status
+          log.warning(s"Failed to deregister from Instance Registry, server returned $statuscode")
+          Failure(new RuntimeException(s"Failed to deregister from Instance Registry, server returned $statuscode"))
+        }
 
-    } recover {case ex =>
-      log.warning(s"Failed to deregister to Instance Registry, exception: $ex")
-      Failure(ex)
-    }, Duration.Inf)
+      } recover {case ex =>
+        log.warning(s"Failed to deregister to Instance Registry, exception: $ex")
+        Failure(ex)
+      }, Duration.Inf)
+    }
   }
 
   def postInstance(instance : Instance, uri: String) () : Future[HttpResponse] =

@@ -14,24 +14,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package de.upb.cs.swt.delphi.crawler
+package de.upb.cs.swt.delphi.crawler.processing
+import java.net.URL
+import java.util.jar.JarInputStream
 
-import akka.actor.{ActorRef, ActorSystem}
-import com.sksamuel.elastic4s.ElasticsearchClientUri
-import com.sksamuel.elastic4s.http.ElasticClient
-import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
+import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
+import de.upb.cs.swt.delphi.crawler.tools.ClassStreamReader
+import org.opalj.br.analyses.Project
 
-/**
-  * Preliminary starter
-  */
-object Playground extends App {
+trait OPALFunctionality {
 
-  val system : ActorSystem = ActorSystem("trial")
-
-  val clientUri = ElasticsearchClientUri("localhost", 9200)
-  val elastic : ActorRef = system.actorOf(ElasticActor.props(ElasticClient(clientUri)), "elastic")
-
-  //val maven : ActorRef = system.actorOf(MavenCrawlActor.props(Uri("http://repo1.maven.org/maven2/de/tu-darmstadt/"), elastic), "maven")
-
-  //maven ! StartDiscover
+  def reifyProject(m: MavenArtifact): Project[URL] = {
+    val project = new ClassStreamReader {}.createProject(m.identifier.toJarLocation.toURL,
+      new JarInputStream(m.jarFile.is))
+    m.jarFile.is.close()
+    project
+  }
 }

@@ -1,39 +1,45 @@
+// Copyright (C) 2018 The Delphi Team.
+// See the LICENCE file distributed with this work for additional
+// information regarding copyright ownership.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package de.upb.cs.swt.delphi.crawler.storage
 
 import akka.actor.{Actor, ActorLogging, Props}
-import com.sksamuel.elastic4s.ElasticsearchClientUri
-import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.http.{ElasticClient, HttpClient}
+import akka.event.LoggingAdapter
+import com.sksamuel.elastic4s.http.ElasticClient
 import de.upb.cs.swt.delphi.crawler.Identifier
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
+import de.upb.cs.swt.delphi.crawler.processing.HermesResults
 
-class ElasticActor(client: ElasticClient) extends Actor with ActorLogging {
+/**
+  * An actor reacting to item which should be pushed to elasticsearch
+  * @param client The currently active elasticsearch client
+  * @author Ben Hermann
+  */
+class ElasticActor(client: ElasticClient) extends Actor with ActorLogging with ArtifactIdentityQuery with ElasticStoreQueries {
+  private implicit val c : ElasticClient = client
+  private implicit val l : LoggingAdapter = log
 
-  override def receive = {
-    case m : MavenIdentifier => {
-      log.info("Pushing new maven identifier to elastic: [{}]", m)
-      client.execute {
-        indexInto(delphiProjectType).fields( "name" -> m.toUniqueString,
-                                                     "source" -> "Maven",
-                                                     "identifier" -> Map(
-                                                       "groupId" -> m.groupId,
-                                                       "artifactId" -> m.artifactId,
-                                                       "version" -> m.version))
-      }
-    }
-    case g : GitIdentifier => {
-      log.info("Pushing new git identifier to elastic: [{}]", g)
-      client.execute {
-        indexInto(delphiProjectType).fields("name" -> (g.repoUrl +"/"+ g.commitId),
-                                                     "source" -> "Git",
-                                                     "identifier" -> Map(
-                                                       "repoUrl" -> g.repoUrl,
-                                                       "commitId" -> g.commitId))
-      }
-    }
+  override def receive: PartialFunction[Any, Unit] = {
+    case m : MavenIdentifier => store(m)
+    case g : GitIdentifier => store(g)
+    case h : HermesResults => store(h)
     case x => log.warning("Received unknown message: [{}] ", x)
   }
+
 }
 
 object ElasticActor {
