@@ -33,7 +33,16 @@ class Configuration {
 
   val instanceName = "MyCrawlerInstance"
   val instanceRegistryUri : String = sys.env.getOrElse("DELPHI_IR_URI", "http://localhost:8085")
-  lazy val usingInstanceRegistry = InstanceRegistry.register(this)
+
+  lazy val usingInstanceRegistry = assignedID match {
+    case Some(_) => true
+    case _ => false
+  }
+
+  lazy val assignedID = InstanceRegistry.register(this) match {
+    case Success(id) => Some(id)
+    case Failure(_) => None
+  }
 
   case class Throttle(element : Int, per : FiniteDuration, maxBurst : Int, mode : ThrottleMode)
 }

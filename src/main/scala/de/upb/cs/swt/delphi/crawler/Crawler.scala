@@ -6,6 +6,7 @@ import com.sksamuel.elastic4s.http.HttpClient
 import de.upb.cs.swt.delphi.crawler.control.Server
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor.Start
+import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceRegistry
 import de.upb.cs.swt.delphi.crawler.preprocessing.PreprocessingDispatchActor
 import de.upb.cs.swt.delphi.crawler.processing.ProcessingDispatchActor
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
@@ -29,6 +30,7 @@ object Crawler extends App with AppLogging {
 
   sys.addShutdownHook(() => {
     log.warning("Received shutdown signal.")
+    InstanceRegistry.deregister(configuration)
     val future = system.terminate()
     Await.result(future, 120.seconds)
   })
@@ -38,6 +40,7 @@ object Crawler extends App with AppLogging {
   Startup.preflightCheck(configuration) match {
     case Success(c) =>
     case Failure(e) => {
+      InstanceRegistry.deregister(configuration)
       system.terminate()
       sys.exit(1)
     }

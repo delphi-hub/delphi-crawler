@@ -21,8 +21,8 @@ object InstanceRegistry extends JsonSupport with AppLogging
   implicit val ec = system.dispatcher
   implicit val materializer = Crawler.materializer
 
-  def register(configuration: Configuration) : Boolean = {
 
+  def register(configuration: Configuration) : Try[Long] = {
     val instance = createInstance(None,configuration.controlServerPort, configuration.instanceName)
 
     Await.result(postInstance(instance, configuration.instanceRegistryUri + "/register") map {response =>
@@ -30,21 +30,21 @@ object InstanceRegistry extends JsonSupport with AppLogging
         Await.result(Unmarshal(response.entity).to[String] map { assignedID =>
           val id = assignedID.toLong
           log.info(s"Successfully registered at Instance Registry, got ID $id.")
-          true
+          Success(id)
         } recover { case ex =>
           log.warning(s"Failed to read assigned ID from Instance Registry, exception: $ex")
-          false
+          Failure(ex)
         }, Duration.Inf)
       }
       else {
         val statuscode = response.status
         log.warning(s"Failed to register at Instance Registry, server returned $statuscode")
-        false
+        Failure(new RuntimeException(s"Failed to register at Instance Registry, server returned $statuscode"))
       }
 
     } recover {case ex =>
       log.warning(s"Failed to register at Instance Registry, exception: $ex")
-      false
+      Failure(ex)
     }, Duration.Inf)
   }
 
@@ -98,6 +98,29 @@ object InstanceRegistry extends JsonSupport with AppLogging
     } recover {case ex =>
       log.warning(s"Failed to post matching result to Instance Registry, exception: $ex")
       Failure(new RuntimeException(s"Failed to post matching result tot Instance Registry, exception: $ex"))
+    }, Duration.Inf)
+  }
+
+  def deregister(configuration: Configuration) : Try[Unit] = {
+    if(!configuration.usingInstanceRegistry) Failure(new RuntimeException("Cannot deregister from Instance Registry, no Instance Registry available."))
+    val id : Long = configuration.assignedID.get
+
+    val request = HttpRequest(method = HttpMethods.POST, configuration.instanceRegistryUri + s"/deregister?Id=$id")
+
+    Await.result(Http(system).singleRequest(request) map {response =>
+      if(response.status == StatusCodes.OK){
+        log.info("Successfully deregistered Instance Registry.")
+        Success()
+      }
+      else {
+        val statuscode = response.status
+        log.warning(s"Failed to deregister from Instance Registry, server returned $statuscode")
+        Failure(new RuntimeException(s"Failed to deregister from Instance Registry, server returned $statuscode"))
+      }
+
+    } recover {case ex =>
+      log.warning(s"Failed to deregister to Instance Registry, exception: $ex")
+      Failure(ex)
     }, Duration.Inf)
   }
 
