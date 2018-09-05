@@ -39,7 +39,12 @@ class Configuration {
 
   lazy val elasticsearchInstance : Instance = InstanceRegistry.retrieveElasticSearchInstance(this) match {
     case Success(instance) => instance
-    case Failure(_) => Instance(None, Some(sys.env.getOrElse("DELPHI_ELASTIC_URI","elasticsearch://localhost:9200")), None, Some("Default ElasticSearch instance"), Some(ComponentType.ElasticSearch) )
+    case Failure(_) => Instance(
+      None,
+      Some(sys.env.getOrElse("DELPHI_ELASTIC_URI","elasticsearch://localhost:9200")),
+      None,
+      Some("Default ElasticSearch instance"),
+      Some(ComponentType.ElasticSearch))
   }
 
   val mavenRepoBase: URI = new URI("http://repo1.maven.org/maven2/") // TODO: Create a local demo server "http://localhost:8881/maven2/"
@@ -55,12 +60,12 @@ class Configuration {
   val instanceName = "MyCrawlerInstance"
   val instanceRegistryUri : String = sys.env.getOrElse("DELPHI_IR_URI", "http://localhost:8085")
 
-  lazy val usingInstanceRegistry = assignedID match {
+  lazy val usingInstanceRegistry : Boolean = assignedID match {
     case Some(_) => true
     case None => false
   }
 
-  lazy val assignedID = InstanceRegistry.register(this) match {
+  lazy val assignedID : Option[Long] = InstanceRegistry.register(this) match {
     case Success(id) => Some(id)
     case Failure(_) => None
   }

@@ -11,7 +11,7 @@ import spray.json._
 
 trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
   implicit val componentTypeFormat = new JsonFormat[InstanceEnums.ComponentType] {
-    def write(compType : InstanceEnums.ComponentType) = JsString(compType.toString())
+    def write(compType : InstanceEnums.ComponentType) = JsString(compType.toString)
 
     def read(value: JsValue) = value match {
       case JsString(s) => s match {

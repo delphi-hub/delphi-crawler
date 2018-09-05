@@ -18,24 +18,26 @@ package de.upb.cs.swt.delphi.crawler.instancemanagement
 
 import java.net.InetAddress
 
+import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
+import akka.stream.ActorMaterializer
 import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration, Crawler}
 import de.upb.cs.swt.delphi.crawler.io.swagger.client.model.InstanceEnums.ComponentType
 import de.upb.cs.swt.delphi.crawler.io.swagger.client.model.{Instance, JsonSupport}
 
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 object InstanceRegistry extends JsonSupport with AppLogging
 {
 
-  implicit val system = Crawler.system
-  implicit val ec = system.dispatcher
-  implicit val materializer = Crawler.materializer
+  implicit val system : ActorSystem = Crawler.system
+  implicit val ec  : ExecutionContext = system.dispatcher
+  implicit val materializer : ActorMaterializer = Crawler.materializer
 
 
   def register(configuration: Configuration) : Try[Long] = {
@@ -102,7 +104,9 @@ object InstanceRegistry extends JsonSupport with AppLogging
         Failure(new RuntimeException("Cannot post matching result to Instance Registry, assigned ElasticSearch instance has no ID."))
       } else {
         val IdToPost = configuration.elasticsearchInstance.iD.get
-        val request = HttpRequest(method = HttpMethods.POST, configuration.instanceRegistryUri + s"/matchingResult?Id=$IdToPost&MatchingSuccessful=$isElasticSearchReachable")
+        val request = HttpRequest(
+          method = HttpMethods.POST,
+          configuration.instanceRegistryUri + s"/matchingResult?Id=$IdToPost&MatchingSuccessful=$isElasticSearchReachable")
 
         Await.result(Http(system).singleRequest(request) map {response =>
           if(response.status == StatusCodes.OK){
@@ -157,5 +161,6 @@ object InstanceRegistry extends JsonSupport with AppLogging
     }
 
 
-  private def createInstance(id: Option[Long], controlPort : Int, name : String) : Instance = Instance(id, Option(InetAddress.getLocalHost().getHostAddress()), Option(controlPort), Option(name), Option(ComponentType.Crawler))
+  private def createInstance(id: Option[Long], controlPort : Int, name : String) : Instance =
+    Instance(id, Option(InetAddress.getLocalHost.getHostAddress), Option(controlPort), Option(name), Option(ComponentType.Crawler))
 }
