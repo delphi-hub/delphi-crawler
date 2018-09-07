@@ -103,10 +103,10 @@ object InstanceRegistry extends JsonSupport with AppLogging
       if(configuration.elasticsearchInstance.iD.isEmpty) {
         Failure(new RuntimeException("Cannot post matching result to Instance Registry, assigned ElasticSearch instance has no ID."))
       } else {
-        val IdToPost = configuration.elasticsearchInstance.iD.get
+        val idToPost = configuration.elasticsearchInstance.iD.getOrElse(-1L)
         val request = HttpRequest(
           method = HttpMethods.POST,
-          configuration.instanceRegistryUri + s"/matchingResult?Id=$IdToPost&MatchingSuccessful=$isElasticSearchReachable")
+          configuration.instanceRegistryUri + s"/matchingResult?Id=$idToPost&MatchingSuccessful=$isElasticSearchReachable")
 
         Await.result(Http(system).singleRequest(request) map {response =>
           if(response.status == StatusCodes.OK){
@@ -132,7 +132,7 @@ object InstanceRegistry extends JsonSupport with AppLogging
     if(!configuration.usingInstanceRegistry){
       Failure(new RuntimeException("Cannot deregister from Instance Registry, no Instance Registry available."))
     } else {
-      val id : Long = configuration.assignedID.get
+      val id : Long = configuration.assignedID.getOrElse(-1L)
 
       val request = HttpRequest(method = HttpMethods.POST, configuration.instanceRegistryUri + s"/deregister?Id=$id")
 
