@@ -31,9 +31,9 @@ class Configuration {
 
   lazy val elasticsearchClientUri: ElasticsearchClientUri = ElasticsearchClientUri({
     if(elasticsearchInstance.portnumber.isEmpty){
-      elasticsearchInstance.iP.getOrElse("elasticsearch://localhost:" + defaultElasticSearchPort)
+      elasticsearchInstance.iP.getOrElse(defaultElasticSearchHost + ":" + defaultElasticSearchPort)
     }else{
-      elasticsearchInstance.iP.getOrElse("elasticsearch://localhost") + ":" + elasticsearchInstance.portnumber.getOrElse(defaultElasticSearchPort)
+      elasticsearchInstance.iP.getOrElse(defaultElasticSearchHost) + ":" + elasticsearchInstance.portnumber.getOrElse(defaultElasticSearchPort)
     }
   })
 
@@ -41,8 +41,8 @@ class Configuration {
     case Success(instance) => instance
     case Failure(_) => Instance(
       None,
-      Some(sys.env.getOrElse("DELPHI_ELASTIC_URI","elasticsearch://localhost")),
-      Some(defaultElasticSearchPort),
+      Some(sys.env.getOrElse("DELPHI_ELASTIC_URI",defaultElasticSearchHost + ":" + defaultElasticSearchPort)),
+      None,
       Some("Default ElasticSearch instance"),
       Some(ComponentType.ElasticSearch))
   }
@@ -50,6 +50,7 @@ class Configuration {
   val mavenRepoBase: URI = new URI("http://repo1.maven.org/maven2/") // TODO: Create a local demo server "http://localhost:8881/maven2/"
   val controlServerPort : Int = 8882
   val defaultElasticSearchPort : Int = 9200
+  val defaultElasticSearchHost : String = "elasticsearch://localhost"
   val limit : Int = 50
   val throttle : Throttle = Throttle(5, 30 second, 5, ThrottleMode.shaping)
 

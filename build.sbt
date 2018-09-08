@@ -73,7 +73,6 @@ libraryDependencies ++= Seq(
 )
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
-resolvers ++= Seq(Resolver.mavenLocal)
 
 val opalVersion = "1.0.0"
 libraryDependencies ++= Seq(

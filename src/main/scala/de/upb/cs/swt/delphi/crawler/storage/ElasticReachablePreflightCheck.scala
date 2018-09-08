@@ -46,11 +46,11 @@ object ElasticReachablePreflightCheck extends PreflightCheck {
     val f = (client.execute {
       nodeInfo()
     } map { i => {
-      if(configuration.usingInstanceRegistry) InstanceRegistry.sendMatchingResult(isElasticSearchReachable = true, configuration)
+      InstanceRegistry.sendMatchingResult(isElasticSearchReachable = true, configuration)
       Success(configuration)
     }
     } recover { case e =>
-      if(configuration.usingInstanceRegistry) InstanceRegistry.sendMatchingResult(isElasticSearchReachable = false, configuration)
+      InstanceRegistry.sendMatchingResult(isElasticSearchReachable = false, configuration)
       Failure(e)
 
     }).andThen {
