@@ -43,9 +43,9 @@ object Crawler extends App with AppLogging {
   implicit val materializer = ActorMaterializer()
 
   OPALLogger.updateLogger(GlobalLogContext, OPALLogAdapter)
-  HermesAnalyzer.setConfig()
+  //HermesAnalyzer.setConfig()
 
-  sys.addShutdownHook(() => {
+  sys.addShutdownHook({
     log.warning("Received shutdown signal.")
     InstanceRegistry.deregister(configuration)
     val future = system.terminate()

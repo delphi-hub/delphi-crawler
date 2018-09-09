@@ -79,7 +79,7 @@ class Configuration {
   val callGraphStreamPoolSize : Int = 4
 
   val instanceName = "MyCrawlerInstance"
-  val instanceRegistryUri : String = sys.env.getOrElse("DELPHI_IR_URI", "http://localhost:8085")
+  val instanceRegistryUri : String = sys.env.getOrElse("DELPHI_IR_URI", "http://localhost:8087")
 
   lazy val usingInstanceRegistry : Boolean = assignedID match {
     case Some(_) => true
