@@ -77,8 +77,8 @@ object InstanceRegistry extends JsonSupport with AppLogging
         if(status == StatusCodes.OK) {
 
           Await.result(Unmarshal(response.entity).to[Instance] map {instance =>
-            val elasticIP = instance.iP
-            log.info(s"Instance Registry assigned ElasticSearch instance at ${elasticIP.getOrElse("None")}")
+            val elasticIP = instance.host
+            log.info(s"Instance Registry assigned ElasticSearch instance at $elasticIP")
             Success(instance)
           } recover {case ex =>
             log.warning(s"Failed to read response from Instance Registry, exception: $ex")
@@ -162,5 +162,5 @@ object InstanceRegistry extends JsonSupport with AppLogging
 
 
   private def createInstance(id: Option[Long], controlPort : Int, name : String) : Instance =
-    Instance(id, Option(InetAddress.getLocalHost.getHostAddress), Option(controlPort), Option(name), Option(ComponentType.Crawler))
+    Instance(id, InetAddress.getLocalHost.getHostAddress, controlPort, name, ComponentType.Crawler)
 }
