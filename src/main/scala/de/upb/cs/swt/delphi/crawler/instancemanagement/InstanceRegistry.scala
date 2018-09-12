@@ -84,10 +84,12 @@ object InstanceRegistry extends JsonSupport with AppLogging
             log.warning(s"Failed to read response from Instance Registry, exception: $ex")
             Failure(ex)
           }, Duration.Inf)
-        }
-        else{
-          log.warning(s"Failed to read response from Instance Registry, server returned $status")
-          Failure(new RuntimeException(s"Failed to read response from Instance Registry, server returned $status"))
+        } else if(status == StatusCodes.NotFound) {
+          log.warning(s"No matching instance of type 'ElasticSearch' is present at the instance registry.")
+          Failure(new RuntimeException(s"Instance Registry did not contain matching instance, server returned $status"))
+        } else {
+          log.warning(s"Failed to read matching instance from Instance Registry, server returned $status")
+          Failure(new RuntimeException(s"Failed to read matching instance from Instance Registry, server returned $status"))
         }
       } recover { case ex =>
         log.warning(s"Failed to request ElasticSearch instance from Instance Registry, exception: $ex ")
@@ -101,7 +103,7 @@ object InstanceRegistry extends JsonSupport with AppLogging
       Failure(new RuntimeException("Cannot post matching result to Instance Registry, no Instance Registry available."))
     } else {
       if(configuration.elasticsearchInstance.iD.isEmpty) {
-        Failure(new RuntimeException("Cannot post matching result to Instance Registry, assigned ElasticSearch instance has no ID."))
+        Failure(new RuntimeException("The ElasticSearch instance was not assigned by the Instance Registry, so no matching result will be posted."))
       } else {
         val idToPost = configuration.elasticsearchInstance.iD.getOrElse(-1L)
         val request = HttpRequest(
