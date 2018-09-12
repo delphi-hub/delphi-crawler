@@ -102,10 +102,10 @@ object InstanceRegistry extends JsonSupport with AppLogging
     if(!configuration.usingInstanceRegistry) {
       Failure(new RuntimeException("Cannot post matching result to Instance Registry, no Instance Registry available."))
     } else {
-      if(configuration.elasticsearchInstance.iD.isEmpty) {
+      if(configuration.elasticsearchInstance.id.isEmpty) {
         Failure(new RuntimeException("The ElasticSearch instance was not assigned by the Instance Registry, so no matching result will be posted."))
       } else {
-        val idToPost = configuration.elasticsearchInstance.iD.getOrElse(-1L)
+        val idToPost = configuration.elasticsearchInstance.id.getOrElse(-1L)
         val request = HttpRequest(
           method = HttpMethods.POST,
           configuration.instanceRegistryUri + s"/matchingResult?Id=$idToPost&MatchingSuccessful=$isElasticSearchReachable")

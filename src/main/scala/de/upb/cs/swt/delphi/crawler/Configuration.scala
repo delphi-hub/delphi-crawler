@@ -30,7 +30,7 @@ import scala.util.{Failure, Success, Try}
 class Configuration {
 
   lazy val elasticsearchClientUri: ElasticsearchClientUri = ElasticsearchClientUri(
-    elasticsearchInstance.host + ":" + elasticsearchInstance.portnumber)
+    elasticsearchInstance.host + ":" + elasticsearchInstance.portNumber)
 
   lazy val elasticsearchInstance : Instance = InstanceRegistry.retrieveElasticSearchInstance(this) match {
     case Success(instance) => instance
@@ -49,7 +49,7 @@ class Configuration {
   val defaultElasticSearchHost : String = "elasticsearch://localhost"
 
   lazy val fallbackElasticSearchPort : Int = sys.env.get("DELPHI_ELASTIC_URI") match {
-    case Some(hostString) => if(hostString.count(c => c == ':') == 3){
+    case Some(hostString) => if(hostString.count(c => c == ':') == 2){
         Try(hostString.split(":")(2).toInt) match {
           case Success(port) => port
           case Failure(_) => defaultElasticSearchPort
