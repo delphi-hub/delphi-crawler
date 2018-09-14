@@ -73,23 +73,23 @@ object InstanceRegistry extends JsonSupport with AppLogging
       val request = HttpRequest(method = HttpMethods.GET, configuration.instanceRegistryUri + "/matchingInstance?ComponentType=ElasticSearch")
 
       Await.result(Http(system).singleRequest(request) map {response =>
-        val status = response.status
-        if(status == StatusCodes.OK) {
-
-          Await.result(Unmarshal(response.entity).to[Instance] map {instance =>
-            val elasticIP = instance.host
-            log.info(s"Instance Registry assigned ElasticSearch instance at $elasticIP")
-            Success(instance)
-          } recover {case ex =>
-            log.warning(s"Failed to read response from Instance Registry, exception: $ex")
-            Failure(ex)
-          }, Duration.Inf)
-        } else if(status == StatusCodes.NotFound) {
-          log.warning(s"No matching instance of type 'ElasticSearch' is present at the instance registry.")
-          Failure(new RuntimeException(s"Instance Registry did not contain matching instance, server returned $status"))
-        } else {
-          log.warning(s"Failed to read matching instance from Instance Registry, server returned $status")
-          Failure(new RuntimeException(s"Failed to read matching instance from Instance Registry, server returned $status"))
+        response.status match {
+          case StatusCodes.OK =>
+            Await.result(Unmarshal(response.entity).to[Instance] map {instance =>
+              val elasticIP = instance.host
+              log.info(s"Instance Registry assigned ElasticSearch instance at $elasticIP")
+              Success(instance)
+            } recover {case ex =>
+              log.warning(s"Failed to read response from Instance Registry, exception: $ex")
+              Failure(ex)
+            }, Duration.Inf)
+          case StatusCodes.NotFound =>
+            log.warning(s"No matching instance of type 'ElasticSearch' is present at the instance registry.")
+            Failure(new RuntimeException(s"Instance Registry did not contain matching instance, server returned ${StatusCodes.NotFound}"))
+          case _ =>
+            val status = response.status
+            log.warning(s"Failed to read matching instance from Instance Registry, server returned $status")
+            Failure(new RuntimeException(s"Failed to read matching instance from Instance Registry, server returned $status"))
         }
       } recover { case ex =>
         log.warning(s"Failed to request ElasticSearch instance from Instance Registry, exception: $ex ")
