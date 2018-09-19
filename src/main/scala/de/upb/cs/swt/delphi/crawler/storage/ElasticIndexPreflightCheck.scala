@@ -20,6 +20,7 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.{ElasticClient, RequestFailure, RequestSuccess}
+import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceRegistry
 import de.upb.cs.swt.delphi.crawler.{Configuration, PreflightCheck}
 
 import scala.concurrent.duration.Duration
@@ -46,7 +47,10 @@ object ElasticIndexPreflightCheck extends PreflightCheck with ElasticIndexMainte
           case false => migrateIndex(configuration) // This needs some work
         }
       }
-      case RequestFailure(_, _, _, e) =>  Failure(new ElasticException(e))
+      case RequestFailure(_, _, _, e) =>  {
+        InstanceRegistry.sendMatchingResult(false, configuration)
+        Failure(new ElasticException(e))
+      }
     }
   }
 }

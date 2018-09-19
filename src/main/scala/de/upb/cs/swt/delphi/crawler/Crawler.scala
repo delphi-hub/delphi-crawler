@@ -22,6 +22,7 @@ import com.sksamuel.elastic4s.http.ElasticClient
 import de.upb.cs.swt.delphi.crawler.control.Server
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor.Start
+import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceRegistry
 import de.upb.cs.swt.delphi.crawler.preprocessing.PreprocessingDispatchActor
 import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesAnalyzer, ProcessingDispatchActor}
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
@@ -42,10 +43,11 @@ object Crawler extends App with AppLogging {
   implicit val materializer = ActorMaterializer()
 
   OPALLogger.updateLogger(GlobalLogContext, OPALLogAdapter)
-  HermesAnalyzer.setConfig()
+  //HermesAnalyzer.setConfig()
 
-  sys.addShutdownHook(() => {
+  sys.addShutdownHook({
     log.warning("Received shutdown signal.")
+    InstanceRegistry.deregister(configuration)
     val future = system.terminate()
     Await.result(future, 120.seconds)
   })
@@ -55,6 +57,7 @@ object Crawler extends App with AppLogging {
   Startup.preflightCheck(configuration) match {
     case Success(c) =>
     case Failure(e) => {
+      InstanceRegistry.deregister(configuration)
       system.terminate()
       sys.exit(1)
     }

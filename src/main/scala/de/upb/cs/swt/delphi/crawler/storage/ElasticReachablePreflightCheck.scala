@@ -17,8 +17,9 @@
 package de.upb.cs.swt.delphi.crawler.storage
 
 import akka.actor.ActorSystem
-import com.sksamuel.elastic4s.http.ElasticClient
 import com.sksamuel.elastic4s.http.ElasticDsl._
+import com.sksamuel.elastic4s.http.ElasticClient
+import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceRegistry
 import de.upb.cs.swt.delphi.crawler.{Configuration, PreflightCheck}
 
 import scala.concurrent.duration._
@@ -44,8 +45,14 @@ object ElasticReachablePreflightCheck extends PreflightCheck {
 
     val f = (client.execute {
       nodeInfo()
-    } map { i => Success(configuration)
-    } recover { case e => Failure(e)
+    } map { i => {
+      InstanceRegistry.sendMatchingResult(isElasticSearchReachable = true, configuration)
+      Success(configuration)
+    }
+    } recover { case e =>
+      InstanceRegistry.sendMatchingResult(isElasticSearchReachable = false, configuration)
+      Failure(e)
+
     }).andThen {
       case _ => client.close()
     }
