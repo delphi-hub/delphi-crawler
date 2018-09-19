@@ -49,8 +49,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream" % akkaVersion,
   "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-  "com.typesafe.akka" %% "akka-http" % "10.1.4",
   "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.8"
+  "com.typesafe.akka" %% "akka-http" % "10.1.5"
 )
 
 libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.3"
