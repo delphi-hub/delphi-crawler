@@ -16,12 +16,16 @@
 
 package de.upb.cs.swt.delphi.crawler.control
 
-import akka.actor.ActorSystem
+import akka.actor.{Actor, ActorRef, ActorSystem, Props, Terminated}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.Directives.{get, path, complete}
 import akka.stream.Materializer
+import akka.http.scaladsl.server.Directives._
 import de.upb.cs.swt.delphi.crawler.{AppLogging, BuildInfo}
+import akka.dispatch.MonitorableThreadFactory
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 
 class Server(port: Int)
             (implicit system: ActorSystem, mat: Materializer) extends AppLogging {
@@ -31,13 +35,36 @@ class Server(port: Int)
       path("version") {
         version
       }
+    };
+    post {
+      path("stop"){
+        stop
+      }
     }
 
-  private def version = {
+  private def version: Route = path("version")
+  {
     get {
       complete {
         BuildInfo.version
       }
+    }
+  }
+  private def stop: Route = path("stop")
+  {
+    post
+    {
+    Runtime.getRuntime.addShutdownHook(new Thread(new Runnable {
+      override def run(): Unit = {
+        val terminate: Future[Terminated] = system.terminate()
+        Await.result(terminate, Duration("10 seconds"))
+      }
+    }))
+
+    system.registerOnTermination {
+      println("ActorSystem terminated")
+    }
+    complete {"Crawler Shutdown"}
     }
   }
 
