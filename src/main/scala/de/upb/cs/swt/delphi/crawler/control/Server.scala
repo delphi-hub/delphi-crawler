@@ -13,58 +13,65 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 package de.upb.cs.swt.delphi.crawler.control
-
-import akka.actor.{Actor, ActorRef, ActorSystem, Props, Terminated}
+import akka.actor.{Actor, ActorRef, ActorSystem, CoordinatedShutdown, PoisonPill, Props, Terminated}
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.server.Directives.{get, path, complete}
+import akka.http.scaladsl.server.Directives.{complete, get, path, post}
 import akka.stream.Materializer
 import akka.http.scaladsl.server.Directives._
-import de.upb.cs.swt.delphi.crawler.{AppLogging, BuildInfo}
-import akka.dispatch.MonitorableThreadFactory
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import de.upb.cs.swt.delphi.crawler.{AppLogging, BuildInfo, Crawler}
+
+import scala.concurrent.Future
 
 class Server(port: Int)
             (implicit system: ActorSystem, mat: Materializer) extends AppLogging {
-
+  implicit val ec=system.dispatcher
   val route: Route =
-    get {
-      path("version") {
-        version
-      }
-    };
-    post {
-      path("stop"){
-        stop
-      }
-    }
-
-  private def version: Route = path("version")
-  {
+    path("version") {version} ~
+      path("stop") {stop}
+  private def version= {
     get {
       complete {
         BuildInfo.version
       }
     }
   }
-  private def stop: Route = path("stop")
-  {
-    post
-    {
-    Runtime.getRuntime.addShutdownHook(new Thread(new Runnable {
-      override def run(): Unit = {
-        val terminate: Future[Terminated] = system.terminate()
-        Await.result(terminate, Duration("10 seconds"))
-      }
-    }))
+  private def stop = {
+    post {
+      new Thread(){
+        override def run(){
+          Thread.sleep(2000)
+          system.terminate() andThen {case _ => sys.exit(1)}
+        }
 
-    system.registerOnTermination {
-      println("ActorSystem terminated")
-    }
-    complete {"Crawler Shutdown"}
+      }.start()
+
+      //Http().shutdownAllConnectionPools() andThen { case _ => sys.exit(1)
+        //log.info("System Shutdown")
+        //system.terminate()
+        //System.exit(0)
+
+        //System.exit(0)
+
+
+        //sys.exit(1)
+        //CoordinatedShutdown(system).run(CoordinatedShutdown.UnknownReason)
+
+        //system.PoisonPill
+        //CoordinatedShutdown(system).addJvmShutdownHook {
+         // println("custom JVM shutdown hook...")
+        //}
+        //println("Hallo")
+        //System.exit(0)
+        //sys.exit()
+
+
+        //PoisonPill.getInstance
+        //ActorSystem ! PoisonPill.getInstance
+      //}
+      //curl -i -X GET  http://localhost:8882/version
+      complete("Shutting down app")
     }
   }
 
@@ -72,5 +79,4 @@ class Server(port: Int)
     Http().bind("0.0.0.0", port).runForeach(_.handleWith(Route.handlerFlow(route)))
     log.info(s"Interaction server started on port $port")
   }
-
 }
