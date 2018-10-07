@@ -47,7 +47,7 @@ object Crawler extends App with AppLogging {
 
   sys.addShutdownHook({
     log.warning("Received shutdown signal.")
-    InstanceRegistry.deregister(configuration)
+    InstanceRegistry.handleInstanceStop(configuration)
     val future = system.terminate()
     Await.result(future, 120.seconds)
   })
@@ -57,7 +57,7 @@ object Crawler extends App with AppLogging {
   Startup.preflightCheck(configuration) match {
     case Success(c) =>
     case Failure(e) => {
-      InstanceRegistry.deregister(configuration)
+      InstanceRegistry.handleInstanceStop(configuration)
       system.terminate()
       sys.exit(1)
     }
