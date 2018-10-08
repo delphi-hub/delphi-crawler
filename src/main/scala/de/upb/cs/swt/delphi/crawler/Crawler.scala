@@ -57,7 +57,7 @@ object Crawler extends App with AppLogging {
   Startup.preflightCheck(configuration) match {
     case Success(c) =>
     case Failure(e) => {
-      InstanceRegistry.handleInstanceStop(configuration)
+      InstanceRegistry.handleInstanceFailure(configuration)
       system.terminate()
       sys.exit(1)
     }

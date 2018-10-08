@@ -68,6 +68,14 @@ object InstanceRegistry extends JsonSupport with AppLogging
     }
   }
 
+  def handleInstanceFailure(configuration: Configuration) : Try[Unit] = {
+    if(instanceIdFromEnv.isDefined) {
+      reportFailure(configuration)
+    } else {
+      deregister(configuration)
+    }
+  }
+
   def reportStart(configuration: Configuration) : Try[Unit] = executeReportOperation(configuration, ReportOperationType.Start)
 
   def reportStop(configuration: Configuration) : Try[Unit] = {
