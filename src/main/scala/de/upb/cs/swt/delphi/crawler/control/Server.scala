@@ -14,22 +14,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 package de.upb.cs.swt.delphi.crawler.control
-import akka.actor.{Actor, ActorRef, ActorSystem, CoordinatedShutdown, PoisonPill, Props, Terminated}
+import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Route
 import akka.http.scaladsl.server.Directives.{complete, get, path, post}
 import akka.stream.Materializer
 import akka.http.scaladsl.server.Directives._
-import de.upb.cs.swt.delphi.crawler.{AppLogging, BuildInfo, Crawler}
+import de.upb.cs.swt.delphi.crawler.{AppLogging, BuildInfo}
 
-import scala.concurrent.Future
+import scala.concurrent.ExecutionContext
 
 class Server(port: Int)
             (implicit system: ActorSystem, mat: Materializer) extends AppLogging {
-  implicit val ec=system.dispatcher
+
+  implicit val ec : ExecutionContext = system.dispatcher
+
   val route: Route =
-    path("version") {version} ~
+      path("version") {version} ~
       path("stop") {stop}
+
   private def version= {
     get {
       complete {
@@ -37,41 +40,19 @@ class Server(port: Int)
       }
     }
   }
+
   private def stop = {
     post {
+      val timeout = 2000
       new Thread(){
         override def run(){
-          Thread.sleep(2000)
-          system.terminate() andThen {case _ => sys.exit(1)}
+          Thread.sleep(timeout)
+          system.terminate() andThen {case _ => sys.exit(0)}
         }
 
       }.start()
 
-      //Http().shutdownAllConnectionPools() andThen { case _ => sys.exit(1)
-        //log.info("System Shutdown")
-        //system.terminate()
-        //System.exit(0)
-
-        //System.exit(0)
-
-
-        //sys.exit(1)
-        //CoordinatedShutdown(system).run(CoordinatedShutdown.UnknownReason)
-
-        //system.PoisonPill
-        //CoordinatedShutdown(system).addJvmShutdownHook {
-         // println("custom JVM shutdown hook...")
-        //}
-        //println("Hallo")
-        //System.exit(0)
-        //sys.exit()
-
-
-        //PoisonPill.getInstance
-        //ActorSystem ! PoisonPill.getInstance
-      //}
-      //curl -i -X GET  http://localhost:8882/version
-      complete("Shutting down app")
+      complete(s"Shutdown will be executed in $timeout milliseconds.")
     }
   }
 
