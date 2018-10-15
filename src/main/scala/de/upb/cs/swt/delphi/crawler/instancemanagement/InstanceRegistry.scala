@@ -24,9 +24,8 @@ import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
+import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceEnums.ComponentType
 import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration, Crawler}
-import InstanceEnums.ComponentType
-import de.upb.cs.swt.delphi.crawler.io.swagger.client.model.JsonSupport
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}

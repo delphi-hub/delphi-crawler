@@ -20,8 +20,8 @@ import java.net.URI
 
 import akka.stream.ThrottleMode
 import com.sksamuel.elastic4s.ElasticsearchClientUri
+import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceEnums.ComponentType
 import de.upb.cs.swt.delphi.crawler.instancemanagement.{Instance, InstanceRegistry}
-import de.upb.cs.swt.delphi.crawler.io.swagger.client.model.InstanceEnums.ComponentType
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
