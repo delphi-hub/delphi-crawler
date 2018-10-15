@@ -4,7 +4,7 @@
  * For any issue or feedback, please open a ticket via https://github.com/swagger-api/swagger-codegen/issues/new
  */
 
-package de.upb.cs.swt.delphi.crawler.io.swagger.client.model
+package de.upb.cs.swt.delphi.crawler.instancemanagement
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
 import spray.json._
