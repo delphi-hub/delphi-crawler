@@ -29,10 +29,8 @@ import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
 import scala.concurrent.duration._
 import scala.util.Success
 
-class PreprocessingDispatchActor(configuration : Configuration, nextStep : ActorRef, elasticActor : ActorRef) extends Actor with ActorLogging {
+class PreprocessingDispatchActor(configuration : Configuration, nextStep : ActorRef, elasticPool : ActorRef) extends Actor with ActorLogging {
 
-  val elasticPool = context.actorOf(RoundRobinPool(configuration.elasticActorPoolSize)
-    .props(ElasticActor.props(ElasticClient(configuration.elasticsearchClientUri))))
   val callGraphPool = context.actorOf(BalancingPool(configuration.callGraphStreamPoolSize)
     .props(CallGraphStream.props(configuration)))
 
@@ -43,9 +41,6 @@ class PreprocessingDispatchActor(configuration : Configuration, nextStep : Actor
 
       // Start creation of base record
       elasticPool forward m
-
-      // Create call graphs for each project
-      callGraphPool ! m
 
       // Transform maven identifier into maven artifact
       implicit val timeout = Timeout(5.seconds)

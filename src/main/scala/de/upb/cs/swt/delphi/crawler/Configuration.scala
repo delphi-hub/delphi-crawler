@@ -28,6 +28,8 @@ import scala.util.{Failure, Success, Try}
 
 class Configuration {
 
+
+
   lazy val elasticsearchClientUri: ElasticsearchClientUri = ElasticsearchClientUri(
     elasticsearchInstance.host + ":" + elasticsearchInstance.portNumber)
 
@@ -70,12 +72,13 @@ class Configuration {
 
   }
   val limit : Int = 50
-  val throttle : Throttle = Throttle(5, 30 second, 5, ThrottleMode.shaping)
+  val throttle : Throttle = Throttle(5, 1 millisecond, 5, ThrottleMode.shaping)
 
   val tempFileStorage : String = "temp/"
 
   val elasticActorPoolSize : Int = 4
   val callGraphStreamPoolSize : Int = 4
+  val hermesActorPoolSize: Int = 2
 
   val instanceName = "MyCrawlerInstance"
   val instanceRegistryUri : String = sys.env.getOrElse("DELPHI_IR_URI", "http://localhost:8087")
