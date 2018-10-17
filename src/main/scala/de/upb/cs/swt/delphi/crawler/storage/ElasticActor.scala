@@ -21,6 +21,7 @@ import akka.event.LoggingAdapter
 import com.sksamuel.elastic4s.http.ElasticClient
 import de.upb.cs.swt.delphi.crawler.Identifier
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
+import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.processing.HermesResults
 
@@ -34,9 +35,26 @@ class ElasticActor(client: ElasticClient) extends Actor with ActorLogging with A
   private implicit val l : LoggingAdapter = log
 
   override def receive: PartialFunction[Any, Unit] = {
-    case m : MavenIdentifier => store(m)
-    case g : GitIdentifier => store(g)
-    case h : HermesResults => store(h)
+    case StreamInitialized =>
+      log.info(s"Stream initialized!")
+      sender() ! Ack
+    case StreamCompleted =>
+      log.info(s"Stream completed!")
+    case StreamFailure(ex) =>
+      log.error(ex, s"Stream failed!")
+    case m : MavenIdentifier => {
+      log.info(s"pushing $m")
+      store(m)
+      sender() ! Ack
+    }
+    case g : GitIdentifier => {
+      store(g)
+      sender() ! Ack
+    }
+    case h : HermesResults => {
+      store(h)
+      sender() ! Ack
+    }
     case x => log.warning("Received unknown message: [{}] ", x)
   }
 

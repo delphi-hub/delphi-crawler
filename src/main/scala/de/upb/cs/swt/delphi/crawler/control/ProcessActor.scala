@@ -14,22 +14,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package de.upb.cs.swt.delphi.crawler.processing
-import java.net.URL
-import java.util.jar.JarInputStream
+package de.upb.cs.swt.delphi.crawler.control
 
-import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
-import de.upb.cs.swt.delphi.crawler.tools.ClassStreamReader
-import org.opalj.br.analyses.Project
+import akka.actor.{Actor, ActorLogging, Props}
+import de.upb.cs.swt.delphi.crawler.control.ProcessActor.Go
 
-import scala.util.Try
-
-trait OPALFunctionality {
-
-  def reifyProject(m: MavenArtifact): Project[URL] = {
-    val project = new ClassStreamReader {}.createProject(m.identifier.toJarLocation.toURL,
-      new JarInputStream(m.jarFile.is))
-    Try(m.jarFile.is.close())
-    project
+/**
+  * A wrapping actor around a blocking process
+  *
+  * @param process
+  * @author Ben Hermann
+  */
+class ProcessActor(process: Process[_]) extends Actor with ActorLogging {
+  override def receive: Receive = {
+    case Go => {
+      val result = process.start
+      sender() ! ProcessScheduler.Finalized(process, result)
+    }
   }
 }
+
+object ProcessActor {
+  def props(process: Process[_]) = Props(new ProcessActor(process))
+
+  case object Go
+
+}
+

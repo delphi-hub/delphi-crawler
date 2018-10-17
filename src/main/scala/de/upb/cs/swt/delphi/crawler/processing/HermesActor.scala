@@ -23,22 +23,26 @@ import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
 import org.opalj.br.analyses.Project
 
-class HermesActor(elasticActor : ActorRef) extends Actor with ActorLogging with OPALFunctionality with HermesFunctionality {
+import scala.util.Try
+
+class HermesActor() extends Actor with ActorLogging with OPALFunctionality with HermesFunctionality {
 
   def receive: PartialFunction[Any, Unit] = {
     case m : MavenArtifact => {
       log.info(s"Starting analysis for $m")
 
-      val project: Project[URL] = reifyProject(m)
-      val hermesResult: HermesResults = computeHermesResult(m, project)
-      elasticActor ! hermesResult
+      val hermesResult = Try {
+        computeHermesResult(m, reifyProject(m))
+      }
+
+      sender() ! hermesResult
     }
   }
 }
 
 object HermesActor {
   type HermesStatistics = scala.collection.Map[String, Double]
-  def props(elasticActor : ActorRef): Props = Props(new HermesActor(elasticActor))
+  def props(): Props = Props(new HermesActor)
 
 }
 

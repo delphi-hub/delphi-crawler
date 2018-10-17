@@ -20,14 +20,15 @@ import java.net.URI
 
 import akka.stream.ThrottleMode
 import com.sksamuel.elastic4s.ElasticsearchClientUri
-import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceRegistry
-import de.upb.cs.swt.delphi.crawler.io.swagger.client.model.Instance
-import de.upb.cs.swt.delphi.crawler.io.swagger.client.model.InstanceEnums.{ComponentType, InstanceState}
+import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceEnums.{ComponentType, InstanceState}
+import de.upb.cs.swt.delphi.crawler.instancemanagement.{Instance, InstanceRegistry}
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
 
 class Configuration {
+
+
 
   lazy val elasticsearchClientUri: ElasticsearchClientUri = ElasticsearchClientUri(
     elasticSearchInstance.host + ":" + elasticSearchInstance.portNumber)
@@ -72,13 +73,14 @@ class Configuration {
     case None => defaultElasticSearchHost
 
   }
-  val limit : Int = 50
-  val throttle : Throttle = Throttle(5, 30 second, 5, ThrottleMode.shaping)
+  val limit : Int = 0
+  val throttle : Throttle = Throttle(5, 1 second, 5, ThrottleMode.shaping)
 
   val tempFileStorage : String = "temp/"
 
   val elasticActorPoolSize : Int = 4
   val callGraphStreamPoolSize : Int = 4
+  val hermesActorPoolSize: Int = 2
 
 
 

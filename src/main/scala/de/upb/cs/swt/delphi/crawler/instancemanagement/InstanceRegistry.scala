@@ -20,14 +20,12 @@ import java.net.InetAddress
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
+import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceEnums.{ComponentType, InstanceState}
 import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration, Crawler}
-import de.upb.cs.swt.delphi.crawler.io.swagger.client.model.InstanceEnums.{ComponentType, InstanceState}
-import de.upb.cs.swt.delphi.crawler.io.swagger.client.model.{Instance, JsonSupport}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext, Future}

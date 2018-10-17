@@ -17,11 +17,11 @@
 package de.upb.cs.swt.delphi.crawler
 
 import akka.actor.ActorSystem
+import akka.routing.{RoundRobinPool, SmallestMailboxPool}
 import akka.stream.ActorMaterializer
 import com.sksamuel.elastic4s.http.ElasticClient
-import de.upb.cs.swt.delphi.crawler.control.Server
-import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor
-import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor.Start
+import de.upb.cs.swt.delphi.crawler.control.{ProcessScheduler, Server}
+import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenDiscoveryProcess
 import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceRegistry
 import de.upb.cs.swt.delphi.crawler.preprocessing.PreprocessingDispatchActor
 import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesAnalyzer, ProcessingDispatchActor}
@@ -39,7 +39,7 @@ import scala.util.{Failure, Success}
 object Crawler extends App with AppLogging {
   private val configuration = new Configuration()
 
-  implicit val system : ActorSystem = ActorSystem("delphi-crawler")
+  implicit val system: ActorSystem = ActorSystem("delphi-crawler")
   implicit val materializer = ActorMaterializer()
 
   OPALLogger.updateLogger(GlobalLogContext, OPALLogAdapter)
@@ -68,12 +68,18 @@ object Crawler extends App with AppLogging {
 
   new Server(configuration.controlServerPort).start()
 
-  val elasticActor = system.actorOf(ElasticActor.props(ElasticClient(configuration.elasticsearchClientUri)))
-  val hermesActor = system.actorOf(HermesActor.props(elasticActor))
-  val processingDispatchActor = system.actorOf(ProcessingDispatchActor.props(hermesActor))
-  val preprocessingDispatchActor = system.actorOf(PreprocessingDispatchActor.props(configuration, processingDispatchActor, elasticActor))
-  val mavenCrawlActor = system.actorOf(MavenCrawlActor.props(configuration, preprocessingDispatchActor))
+  val elasticPool = system.actorOf(RoundRobinPool(configuration.elasticActorPoolSize)
+    .props(ElasticActor.props(ElasticClient(configuration.elasticsearchClientUri))))
 
-  mavenCrawlActor ! Start
+  /*
+  val hermesPool = system.actorOf(SmallestMailboxPool(configuration.hermesActorPoolSize).props(HermesActor.props()))
+  val processingDispatchActor = system.actorOf(ProcessingDispatchActor.props(hermesPool))
+
+  val preprocessingDispatchActor = system.actorOf(PreprocessingDispatchActor.props(configuration, processingDispatchActor, elasticPool))
+*/
+
+  val processScheduler = system.actorOf(ProcessScheduler.props)
+  processScheduler ! ProcessScheduler.Enqueue(new MavenDiscoveryProcess(configuration, elasticPool))
+
 
 }

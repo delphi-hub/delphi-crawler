@@ -14,22 +14,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package de.upb.cs.swt.delphi.crawler.processing
-import java.net.URL
-import java.util.jar.JarInputStream
+package de.upb.cs.swt.delphi.crawler.control
 
-import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
-import de.upb.cs.swt.delphi.crawler.tools.ClassStreamReader
-import org.opalj.br.analyses.Project
+import de.upb.cs.swt.delphi.crawler.control.Phase.Phase
 
 import scala.util.Try
 
-trait OPALFunctionality {
+/**
+  * Describes a (possibly long-running) process
+  *
+  * @tparam T The type of the processes result
+  * @author Ben Hermann
+  */
+trait Process[T] {
+  def phase: Phase
 
-  def reifyProject(m: MavenArtifact): Project[URL] = {
-    val project = new ClassStreamReader {}.createProject(m.identifier.toJarLocation.toURL,
-      new JarInputStream(m.jarFile.is))
-    Try(m.jarFile.is.close())
-    project
-  }
+  def start: Try[T]
+
+  def stop: Try[T]
+}
+
+/**
+  * Describes a process phase
+  *
+  * @author Ben Hermann
+  */
+object Phase extends Enumeration {
+  type Phase = Value
+  val Discovery, Processing, ErrorCorrection = Value
 }
