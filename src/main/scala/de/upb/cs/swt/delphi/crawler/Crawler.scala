@@ -21,8 +21,7 @@ import akka.routing.{RoundRobinPool, SmallestMailboxPool}
 import akka.stream.ActorMaterializer
 import com.sksamuel.elastic4s.http.ElasticClient
 import de.upb.cs.swt.delphi.crawler.control.{ProcessScheduler, Server}
-import de.upb.cs.swt.delphi.crawler.discovery.maven.{MavenCrawlActor, MavenDiscoveryProcess}
-import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenCrawlActor.Start
+import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenDiscoveryProcess
 import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceRegistry
 import de.upb.cs.swt.delphi.crawler.preprocessing.PreprocessingDispatchActor
 import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesAnalyzer, ProcessingDispatchActor}
@@ -44,7 +43,7 @@ object Crawler extends App with AppLogging {
   implicit val materializer = ActorMaterializer()
 
   OPALLogger.updateLogger(GlobalLogContext, OPALLogAdapter)
-  //HermesAnalyzer.setConfig()
+  HermesAnalyzer.setConfig()
 
   sys.addShutdownHook({
     log.warning("Received shutdown signal.")
@@ -72,13 +71,15 @@ object Crawler extends App with AppLogging {
   val elasticPool = system.actorOf(RoundRobinPool(configuration.elasticActorPoolSize)
     .props(ElasticActor.props(ElasticClient(configuration.elasticsearchClientUri))))
 
-  val hermesPool = system.actorOf(SmallestMailboxPool(configuration.hermesActorPoolSize).props(HermesActor.props(elasticPool)))
+  /*
+  val hermesPool = system.actorOf(SmallestMailboxPool(configuration.hermesActorPoolSize).props(HermesActor.props()))
   val processingDispatchActor = system.actorOf(ProcessingDispatchActor.props(hermesPool))
 
   val preprocessingDispatchActor = system.actorOf(PreprocessingDispatchActor.props(configuration, processingDispatchActor, elasticPool))
+*/
 
   val processScheduler = system.actorOf(ProcessScheduler.props)
-  processScheduler ! ProcessScheduler.Enqueue(new MavenDiscoveryProcess(configuration, preprocessingDispatchActor))
+  processScheduler ! ProcessScheduler.Enqueue(new MavenDiscoveryProcess(configuration, elasticPool))
 
 
 }

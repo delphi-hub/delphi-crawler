@@ -18,30 +18,36 @@ package de.upb.cs.swt.delphi.crawler.discovery.maven
 
 import akka.actor.{ActorRef, ActorSystem}
 import akka.event.LoggingAdapter
-import akka.stream.ActorMaterializer
+import akka.pattern.ask
+import akka.routing.SmallestMailboxPool
+import akka.stream.{ActorMaterializer, ThrottleMode}
 import akka.stream.scaladsl.{Keep, Sink}
+import akka.util.Timeout
 import com.sksamuel.elastic4s.http.ElasticClient
 import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration}
 import de.upb.cs.swt.delphi.crawler.control.Phase
 import de.upb.cs.swt.delphi.crawler.control.Phase.Phase
+import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
+import de.upb.cs.swt.delphi.crawler.preprocessing.{MavenArtifact, MavenDownloadActor}
+import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesResults}
 import de.upb.cs.swt.delphi.crawler.storage.ArtifactExistsQuery
 import de.upb.cs.swt.delphi.crawler.tools.NotYetImplementedException
 
 import scala.collection.mutable
-import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
-import scala.util.{Failure, Try}
+import scala.concurrent.duration._
+import scala.util.{Failure, Success, Try}
+
 
 /**
   * A process to discover new artifacts from a configured maven repository.
   *
   * @author Ben Hermann
   * @param configuration The configuration to be used
-  * @param forwarder An actor that will be notified on discovered {@see MavenIdentifier} objects
-  * @param system The currently used actor system (for logging)
+  * @param elasticPool   A pool of elasticsearch actors
+  * @param system        The currently used actor system (for logging)
   *
   */
-class MavenDiscoveryProcess(configuration: Configuration, forwarder: ActorRef)
+class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
                            (implicit system: ActorSystem)
   extends de.upb.cs.swt.delphi.crawler.control.Process[Long]
     with IndexProcessing
@@ -50,6 +56,9 @@ class MavenDiscoveryProcess(configuration: Configuration, forwarder: ActorRef)
 
   private val seen = mutable.HashSet[MavenIdentifier]()
 
+  val downloaderPool = system.actorOf(SmallestMailboxPool(8).props(MavenDownloadActor.props))
+  val hermesPool = system.actorOf(SmallestMailboxPool(configuration.hermesActorPoolSize).props(HermesActor.props()))
+
   override def phase: Phase = Phase.Discovery
 
   override def start: Try[Long] = {
@@ -57,25 +66,49 @@ class MavenDiscoveryProcess(configuration: Configuration, forwarder: ActorRef)
     implicit val logger: LoggingAdapter = log
     implicit val client = ElasticClient(configuration.elasticsearchClientUri)
 
-    val (preproccess, count) =
+    var filteredSource =
       createSource(configuration.mavenRepoBase)
-        .throttle(configuration.throttle.element, configuration.throttle.per, configuration.throttle.maxBurst, configuration.throttle.mode)
         .filter(m => {
           val before = seen.contains(m)
           if (!before) seen.add(m)
           !before
         }) // local seen cache to compensate for lags
         .filter(m => !exists(m)) // ask elastic
-        .take(configuration.limit) // limit for now
-        .alsoToMat(Sink.foreach(forwarder ! _))(Keep.right)
-        .toMat(Sink.fold(0L)((acc, _) => acc + 1))(Keep.both)
+        .throttle(configuration.throttle.element, configuration.throttle.per, configuration.throttle.maxBurst, configuration.throttle.mode)
+
+
+    if (configuration.limit > 0) {
+      filteredSource = filteredSource.take(configuration.limit)
+    }
+
+    implicit val timeout = Timeout(5 minutes)
+
+    val preprocessing =
+      filteredSource
+        .alsoTo(createSinkFromActorRef[MavenIdentifier](elasticPool))
+        .mapAsync(8)(identifier => (downloaderPool ? identifier).mapTo[Try[MavenArtifact]])
+        .filter(artifact => artifact.isSuccess)
+        .map(artifact => artifact.get)
+
+    val finalizer =
+      preprocessing
+        .mapAsync(configuration.hermesActorPoolSize)(artifact => (hermesPool ? artifact).mapTo[Try[HermesResults]])
+        .filter(results => results.isSuccess)
+        .map(results => results.get)
+        .alsoTo(createSinkFromActorRef[HermesResults](elasticPool))
+        .to(Sink.ignore)
         .run()
 
+    Success(0L)
+  }
 
-    Try(Await.result(count, Duration.Inf))
+  private def createSinkFromActorRef[T](actorRef: ActorRef) = {
+    Sink.actorRefWithAck[T](actorRef, StreamInitialized, Ack, StreamCompleted, StreamFailure)
   }
 
   override def stop: Try[Long] = {
     Failure(new NotYetImplementedException)
   }
 }
+
+

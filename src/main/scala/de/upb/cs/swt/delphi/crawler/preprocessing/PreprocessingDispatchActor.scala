@@ -18,7 +18,7 @@ package de.upb.cs.swt.delphi.crawler.preprocessing
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.ask
-import akka.routing.{BalancingPool, RoundRobinPool}
+import akka.routing.{BalancingPool, RoundRobinPool, SmallestMailboxPool}
 import akka.util.Timeout
 import com.sksamuel.elastic4s.http.ElasticClient
 import de.upb.cs.swt.delphi.crawler.Configuration
@@ -34,6 +34,8 @@ class PreprocessingDispatchActor(configuration : Configuration, nextStep : Actor
   val callGraphPool = context.actorOf(BalancingPool(configuration.callGraphStreamPoolSize)
     .props(CallGraphStream.props(configuration)))
 
+  val downloadActorPool = context.actorOf(SmallestMailboxPool(8).props(MavenDownloadActor.props))
+
   override def receive: Receive = {
     case m : MavenIdentifier => {
 
@@ -43,9 +45,8 @@ class PreprocessingDispatchActor(configuration : Configuration, nextStep : Actor
       elasticPool forward m
 
       // Transform maven identifier into maven artifact
-      implicit val timeout = Timeout(5.seconds)
-      val downloadActor = context.actorOf(MavenDownloadActor.props)
-      val f = downloadActor ? m
+      implicit val timeout = Timeout(1 minutes)
+      val f = downloadActorPool ? m
 
       // After transformation push to processing dispatch
       f.onComplete { result => result match {
