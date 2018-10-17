@@ -17,21 +17,27 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
 import akka.actor.ActorSystem
+import akka.pattern.ask
 import akka.testkit.{ImplicitSender, TestKit}
+import akka.util.Timeout
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+
 import scala.concurrent.duration._
 import de.upb.cs.swt.delphi.crawler.preprocessing.Common._
 
+import scala.concurrent.Await
+import scala.util.{Success, Try}
+
 /**
   * @author Hariharan.
+  * @author Ben Hermann
   */
 class MavenDownloadActorTest extends TestKit(ActorSystem("DownloadActor"))
-                              with ImplicitSender
-                              with WordSpecLike
-                              with Matchers
-                              with BeforeAndAfterAll
-{
+  with ImplicitSender
+  with WordSpecLike
+  with Matchers
+  with BeforeAndAfterAll {
   override def afterAll {
     TestKit.shutdownActorSystem(system)
   }
@@ -40,12 +46,20 @@ class MavenDownloadActorTest extends TestKit(ActorSystem("DownloadActor"))
     "create a maven artifact with a jar and pom file" in {
       val mavenIdentifier = new MavenIdentifier("http://central.maven.org/maven2/", "junit", "junit", "4.12")
       val downloadActor = system.actorOf(MavenDownloadActor.props)
-      downloadActor ! mavenIdentifier
-      val msg = receiveOne(2.seconds)
-      assert(msg.isInstanceOf[MavenArtifact])
-      val artifact = msg.asInstanceOf[MavenArtifact]
+
+      implicit val timeout = Timeout(10 seconds)
+      implicit val ec = system.dispatcher
+
+      val f = downloadActor ? mavenIdentifier
+
+      val msg = Await.result(f, 10 seconds)
+
+      assert(msg.isInstanceOf[Success[MavenArtifact]])
+      val artifact = msg.asInstanceOf[Success[MavenArtifact]].get
       checkJar(artifact.jarFile.is)
       checkPom(artifact.pomFile.is)
+
+
     }
   }
 }
