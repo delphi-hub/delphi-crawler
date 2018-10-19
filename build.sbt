@@ -24,7 +24,7 @@ lazy val crawler = (project in file(".")).
   enablePlugins(JavaAppPackaging).
   enablePlugins(DockerPlugin).
   settings (
-    dockerBaseImage := "openjdk:jre-alpine"
+    dockerBaseImage := "delphihub/jre-alpine-openjfx"
   ).
   enablePlugins(ScalastylePlugin).
   enablePlugins(AshScriptPlugin).
