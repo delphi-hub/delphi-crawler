@@ -17,9 +17,8 @@ package de.upb.cs.swt.delphi.crawler.control
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.server.Route
-import akka.http.scaladsl.server.Directives.{complete, get, path, post}
+import akka.http.scaladsl.server.Directives.{complete, get, path, post, _enhanceRouteWithConcatenation}
 import akka.stream.Materializer
-import akka.http.scaladsl.server.Directives._
 import de.upb.cs.swt.delphi.crawler.{AppLogging, BuildInfo}
 
 import scala.concurrent.ExecutionContext
