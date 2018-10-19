@@ -16,11 +16,14 @@
 
 package de.upb.cs.swt.delphi.crawler.processing
 
-import java.io.File
+import java.io._
 import java.net.URL
+import java.nio.file.{Files, Paths}
 
 import org.opalj.br.analyses.Project
 import org.opalj.hermes._
+
+import scala.io.Source
 
 /**
   * Custom Hermes runner for Delphi
@@ -98,8 +101,22 @@ class HermesAnalyzer(project: Project[URL]) extends HermesCore {
 object HermesAnalyzer extends HermesCore {
 
   def setConfig(): Unit = {
-    var internalConfigurationFile = new File(this.getClass.getClassLoader.getResource("hermes.conf").getFile())
+    var internalConfigurationFile = temporaryConfigFile
     initialize(internalConfigurationFile)
+  }
+
+  private def temporaryConfigFile() : File = {
+    val resourcePath = this.getClass.getClassLoader.getResourceAsStream("hermes.conf")
+    val bytes = Stream.continually(resourcePath.read).takeWhile(_ != -1).map(_.toByte).toArray
+
+    val tempConfigFile = File.createTempFile("hermes-", "")
+    tempConfigFile.deleteOnExit()
+
+    val bufferedOutputStream = new BufferedOutputStream(new FileOutputStream(tempConfigFile))
+    Stream.continually(bufferedOutputStream.write(bytes))
+    bufferedOutputStream.close()
+
+    tempConfigFile
   }
 
   override def updateProjectData(f: => Unit): Unit = Hermes.synchronized {
@@ -110,5 +127,3 @@ object HermesAnalyzer extends HermesCore {
     f
   }
 }
-
-
