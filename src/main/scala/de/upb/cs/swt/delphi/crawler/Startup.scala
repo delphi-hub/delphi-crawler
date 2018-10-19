@@ -44,7 +44,7 @@ object Startup extends AppLogging {
   }
 
   def processPreflightError(e : Throwable)(implicit system : ActorSystem) = {
-    log.error(s"Preflight check failed. Cause: ${e.getMessage} \n Shutting down...")
+    log.error(s"Preflight check failed. Cause: ${e} \n Shutting down...")
   }
 
 
