@@ -18,12 +18,9 @@ package de.upb.cs.swt.delphi.crawler.processing
 
 import java.io._
 import java.net.URL
-import java.nio.file.{Files, Paths}
 
 import org.opalj.br.analyses.Project
 import org.opalj.hermes._
-
-import scala.io.Source
 
 /**
   * Custom Hermes runner for Delphi
@@ -125,5 +122,9 @@ object HermesAnalyzer extends HermesCore {
 
   override def reportProgress(f: => Double): Unit = Hermes.synchronized {
     f
+  }
+
+  lazy val HermesVersion = {
+    classOf[HermesCore].getPackage.getImplementationVersion
   }
 }
