@@ -39,6 +39,12 @@ It expects a running instance of elasticsearch on port 9200 on the same machine.
 You can override this default by setting the environment variable `DELPHI_ELASTIC_URI` to connect to your instance.
 The URI format is `elasticsearch://<host>:<port>`.
 
+## Requirements
+
+When using OpenJDK you have additionally install `openjfx` as one of our dependencies currently requires JavaFX to be present. 
+For many Linux distributions the two packages are `libopenjfx-java` and `openjfx`. 
+For Alpine there are custom packages available [here](https://github.com/sgerrand/alpine-pkg-java-openjfx) and a prepared docker image [here](https://hub.docker.com/r/delphihub/jre-alpine-openjfx/). 
+
 ## Community
 
 Feel welcome to join our chatroom on Gitter: [![Join the chat at https://gitter.im/delphi-hub/delphi](https://badges.gitter.im/delphi-hub/delphi.svg)](https://gitter.im/delphi-hub/delphi?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
