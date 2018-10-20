@@ -15,6 +15,7 @@
 // limitations under the License.
 
 package de.upb.cs.swt.delphi.crawler.storage
+
 import akka.event.LoggingAdapter
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.index.IndexResponse
@@ -23,6 +24,7 @@ import com.sksamuel.elastic4s.http.{ElasticClient, Response}
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.processing.HermesResults
+import org.joda.time.DateTime
 
 /**
   * Queries to map artifacts to elasticsearch insert or update queries.
@@ -55,15 +57,17 @@ trait ElasticStoreQueries {
     }.await
   }
 
-  def store(m: MavenIdentifier)(implicit client: ElasticClient, log : LoggingAdapter): Response[IndexResponse] = {
+  def store(m: MavenIdentifier)(implicit client: ElasticClient, log: LoggingAdapter): Response[IndexResponse] = {
     log.info("Pushing new maven identifier to elastic: [{}]", m)
     client.execute {
-      indexInto(delphiProjectType).fields("name" -> m.toUniqueString,
-        "source" -> "Maven",
-        "identifier" -> Map(
-          "groupId" -> m.groupId,
-          "artifactId" -> m.artifactId,
-          "version" -> m.version))
+      indexInto(delphiProjectType).id(m.toUniqueString)
+        .fields("name" -> m.toUniqueString,
+          "source" -> "Maven",
+          "identifier" -> Map(
+            "groupId" -> m.groupId,
+            "artifactId" -> m.artifactId,
+            "version" -> m.version),
+          "discovered" -> DateTime.now())
     }.await
   }
 }

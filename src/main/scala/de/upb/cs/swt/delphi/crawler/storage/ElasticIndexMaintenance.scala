@@ -50,6 +50,7 @@ trait ElasticIndexMaintenance extends AppLogging {
           keywordField("name"),
           keywordField("source"),
           keywordField("language"),
+          dateField("discovered"),
 
           objectField("identifier") fields identifierFields,
 
