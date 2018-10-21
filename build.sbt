@@ -101,5 +101,6 @@ libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
 // Pinning secure versions of insecure transitive libraryDependencies
 // Please update when updating dependencies above (including Play plugin)
 libraryDependencies ++= Seq(
-    "com.google.guava" % "guava" % "25.1-jre"
+    "com.google.guava" % "guava" % "25.1-jre",
+  "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.7"
 )
