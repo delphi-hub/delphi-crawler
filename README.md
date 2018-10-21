@@ -41,9 +41,9 @@ The URI format is `elasticsearch://<host>:<port>`.
 
 ## Requirements
 
-When using OpenJDK you have additionally install `openjfx` as one of our dependencies currently requires JavaFX to be present. 
-For many Linux distributions the two packages are `libopenjfx-java` and `openjfx`. 
-For Alpine there are custom packages available [here](https://github.com/sgerrand/alpine-pkg-java-openjfx) and a prepared docker image [here](https://hub.docker.com/r/delphihub/jre-alpine-openjfx/). 
+When using OpenJDK you have to additionally install `openjfx` as one of our dependencies currently requires JavaFX to be present. 
+For many Linux distributions the two packages necessary are `libopenjfx-java` and `openjfx`. 
+For Alpine there are custom packages available [here](https://github.com/sgerrand/alpine-pkg-java-openjfx) and a prepared docker image available [here](https://hub.docker.com/r/delphihub/jre-alpine-openjfx/). 
 
 ## Community
 
