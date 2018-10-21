@@ -20,7 +20,7 @@ import java.net.URI
 
 import akka.stream.ThrottleMode
 import com.sksamuel.elastic4s.ElasticsearchClientUri
-import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceEnums.ComponentType
+import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceEnums.{ComponentType, InstanceState}
 import de.upb.cs.swt.delphi.crawler.instancemanagement.{Instance, InstanceRegistry}
 
 import scala.concurrent.duration._
@@ -31,16 +31,18 @@ class Configuration {
 
 
   lazy val elasticsearchClientUri: ElasticsearchClientUri = ElasticsearchClientUri(
-    elasticsearchInstance.host + ":" + elasticsearchInstance.portNumber)
+    elasticSearchInstance.host + ":" + elasticSearchInstance.portNumber)
 
-  lazy val elasticsearchInstance : Instance = InstanceRegistry.retrieveElasticSearchInstance(this) match {
+  lazy val elasticSearchInstance : Instance = InstanceRegistry.retrieveElasticSearchInstance(this) match {
     case Success(instance) => instance
     case Failure(_) => Instance(
       None,
       fallbackElasticSearchHost,
       fallbackElasticSearchPort,
       "Default ElasticSearch instance",
-      ComponentType.ElasticSearch)
+      ComponentType.ElasticSearch,
+      None,
+      InstanceState.Running)
   }
 
   val mavenRepoBase: URI = new URI("http://repo1.maven.org/maven2/") // TODO: Create a local demo server "http://localhost:8881/maven2/"
@@ -80,18 +82,16 @@ class Configuration {
   val callGraphStreamPoolSize : Int = 4
   val hermesActorPoolSize: Int = 2
 
+
+
+
   val instanceName = "MyCrawlerInstance"
+
   val instanceRegistryUri : String = sys.env.getOrElse("DELPHI_IR_URI", "http://localhost:8087")
 
-  lazy val usingInstanceRegistry : Boolean = assignedID match {
-    case Some(_) => true
-    case None => false
-  }
+  lazy val usingInstanceRegistry : Boolean = instanceId.isDefined
 
-  lazy val assignedID : Option[Long] = InstanceRegistry.register(this) match {
-    case Success(id) => Some(id)
-    case Failure(_) => None
-  }
+  lazy val instanceId : Option[Long] = InstanceRegistry.handleInstanceStart(this)
 
   case class Throttle(element : Int, per : FiniteDuration, maxBurst : Int, mode : ThrottleMode)
 }
