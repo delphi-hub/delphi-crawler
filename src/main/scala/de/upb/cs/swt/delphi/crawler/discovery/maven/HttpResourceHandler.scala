@@ -21,6 +21,7 @@ import java.net.{HttpURLConnection, URI}
 
 import de.upb.cs.swt.delphi.crawler.BuildInfo
 import org.apache.maven.index.reader.ResourceHandler
+import scala.concurrent.duration._
 
 class HttpResourceHandler(root : URI) extends ResourceHandler {
   override def locate(name: String): ResourceHandler.Resource = new HttpResource(name)
@@ -32,7 +33,8 @@ class HttpResourceHandler(root : URI) extends ResourceHandler {
 
       val target = root.resolve(name).toURL
 
-      val conn = target.openConnection.asInstanceOf[HttpURLConnection]
+      val conn: HttpURLConnection = target.openConnection.asInstanceOf[HttpURLConnection]
+      conn.setReadTimeout(20.minutes.toMillis.toInt)
       conn.setRequestMethod("GET")
       conn.setRequestProperty("User-Agent", s"Delphi Maven-Indexer-Reader/${BuildInfo.version}" )
 

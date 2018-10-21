@@ -15,6 +15,7 @@
 // limitations under the License.
 
 package de.upb.cs.swt.delphi.crawler.storage
+
 import akka.event.LoggingAdapter
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.index.IndexResponse
@@ -22,7 +23,8 @@ import com.sksamuel.elastic4s.http.update.UpdateResponse
 import com.sksamuel.elastic4s.http.{ElasticClient, Response}
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.processing.HermesResults
+import de.upb.cs.swt.delphi.crawler.processing.{HermesAnalyzer, HermesResults}
+import org.joda.time.DateTime
 
 /**
   * Queries to map artifacts to elasticsearch insert or update queries.
@@ -33,18 +35,21 @@ import de.upb.cs.swt.delphi.crawler.processing.HermesResults
 trait ElasticStoreQueries {
   this: ArtifactIdentityQuery =>
 
-  def store(h: HermesResults)(implicit client: ElasticClient, log : LoggingAdapter): Option[Response[UpdateResponse]] = {
+  def store(h: HermesResults)(implicit client: ElasticClient, log: LoggingAdapter): Option[Response[UpdateResponse]] = {
     elasticId(h.identifier) match {
       case Some(id) =>
         log.info(s"Pushing Hermes results for ${h.identifier} under id $id.")
         Some(client.execute {
-          update(id).in(delphiProjectType).doc("features" -> h.featureMap)
+          update(id).in(delphiProjectType).doc("hermes" -> Map(
+            "features" -> h.featureMap,
+            "version" -> HermesAnalyzer.HermesVersion,
+            "runOn" -> DateTime.now()))
         }.await)
       case None => log.warning(s"Tried to push hermes results for non-existing identifier: ${h.identifier}."); None
     }
   }
 
-  def store(g: GitIdentifier)(implicit client: ElasticClient,log : LoggingAdapter): Response[IndexResponse] = {
+  def store(g: GitIdentifier)(implicit client: ElasticClient, log: LoggingAdapter): Response[IndexResponse] = {
     log.info("Pushing new git identifier to elastic: [{}]", g)
     client.execute {
       indexInto(delphiProjectType).fields("name" -> (g.repoUrl + "/" + g.commitId),
@@ -55,15 +60,17 @@ trait ElasticStoreQueries {
     }.await
   }
 
-  def store(m: MavenIdentifier)(implicit client: ElasticClient, log : LoggingAdapter): Response[IndexResponse] = {
+  def store(m: MavenIdentifier)(implicit client: ElasticClient, log: LoggingAdapter): Response[IndexResponse] = {
     log.info("Pushing new maven identifier to elastic: [{}]", m)
     client.execute {
-      indexInto(delphiProjectType).fields("name" -> m.toUniqueString,
-        "source" -> "Maven",
-        "identifier" -> Map(
-          "groupId" -> m.groupId,
-          "artifactId" -> m.artifactId,
-          "version" -> m.version))
+      indexInto(delphiProjectType).id(m.toUniqueString)
+        .fields("name" -> m.toUniqueString,
+          "source" -> "Maven",
+          "identifier" -> Map(
+            "groupId" -> m.groupId,
+            "artifactId" -> m.artifactId,
+            "version" -> m.version),
+          "discovered" -> DateTime.now())
     }.await
   }
 }
