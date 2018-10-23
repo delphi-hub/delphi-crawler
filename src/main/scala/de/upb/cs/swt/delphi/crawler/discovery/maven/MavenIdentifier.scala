@@ -16,7 +16,8 @@
 
 package de.upb.cs.swt.delphi.crawler.discovery.maven
 
-import java.net.URI
+import java.net.{URI, URLEncoder}
+import java.nio.charset.StandardCharsets
 
 import de.upb.cs.swt.delphi.crawler.Identifier
 
@@ -28,16 +29,19 @@ case class MavenIdentifier(val repository: String, val groupId: String, val arti
   override val toString: String = groupId + ":" + artifactId + ":" + version
 
   def toJarLocation : URI = {
-    constructArtifactBaseUri().resolve(artifactId + "-" + version + ".jar")
+    constructArtifactBaseUri().resolve(encode(artifactId) + "-" + encode(version) + ".jar")
   }
 
   def toPomLocation : URI = {
-    constructArtifactBaseUri().resolve(artifactId + "-" + version + ".pom")
+    constructArtifactBaseUri().resolve(encode(artifactId) + "-" + encode(version) + ".pom")
   }
 
   private def constructArtifactBaseUri(): URI =
     new URI(repository)
-      .resolve(groupId.replace('.', '/') + "/")
-      .resolve(artifactId + "/")
-      .resolve(version + "/")
+      .resolve(encode(groupId).replace('.', '/') + "/")
+      .resolve(encode(artifactId) + "/")
+      .resolve(encode(version) + "/")
+
+  private def encode(input : String) : String =
+    URLEncoder.encode(input, StandardCharsets.UTF_8.toString())
 }
