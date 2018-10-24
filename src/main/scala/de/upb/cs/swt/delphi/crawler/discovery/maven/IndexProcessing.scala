@@ -17,6 +17,7 @@
 package de.upb.cs.swt.delphi.crawler.discovery.maven
 
 import java.net.{URI, URL}
+import java.util
 
 import akka.NotUsed
 import akka.event.LoggingAdapter
@@ -24,8 +25,8 @@ import akka.stream.scaladsl.{RestartSource, Source}
 import org.apache.maven.index.reader.IndexReader
 import org.slf4j.LoggerFactory
 
-import scala.util.{Failure, Success, Try}
 import scala.concurrent.duration._
+import scala.util.{Failure, Success, Try}
 
 trait IndexProcessing {
 
@@ -73,15 +74,27 @@ class MavenIndexReader(base: URL) {
   lazy val cr = ir.iterator().next().iterator()
 
   def read(): Option[MavenIdentifier] = {
-    cr.hasNext() match {
-      case true => {
-        val kvp = cr.next()
-        val identifier = kvp.get("u").split("|".toCharArray)
 
-        val mavenId = MavenIdentifier(base.toString, identifier(0), identifier(1), identifier(2))
-        log.debug(s"Producing $mavenId")
-        Some(mavenId)
+    def readInternal(kvp: util.Map[String, String]) = {
+      val kvpU = kvp.get("u")
+      val identifierAttempt = Try(kvpU.split("|".toCharArray))
+
+      identifierAttempt match {
+        case Success(identifier) => {
+          val mavenId = MavenIdentifier(base.toString, identifier(0), identifier(1), identifier(2))
+          log.debug(s"Producing $mavenId")
+
+           Some(mavenId)
+        }
+        case Failure(e) => {
+          log.warn(s"While processing index we received the following u-value that we could not split $kvpU. Full kvp is $kvp. Exception was $e.")
+          None
+        }
       }
+    }
+
+    cr.hasNext() match {
+      case true => Iterator.continually(readInternal(cr.next())).takeWhile(result => cr.hasNext()).collectFirst[MavenIdentifier]({ case Some(x) => x})
       case false => None
     }
   }
