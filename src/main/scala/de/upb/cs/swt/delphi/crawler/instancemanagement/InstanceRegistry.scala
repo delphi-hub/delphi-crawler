@@ -149,7 +149,8 @@ object InstanceRegistry extends JsonSupport with AppLogging
     if(!configuration.usingInstanceRegistry) {
       Failure(new RuntimeException("Cannot get ElasticSearch instance from Instance Registry, no Instance Registry available."))
     } else {
-      val request = HttpRequest(method = HttpMethods.GET, configuration.instanceRegistryUri + "/matchingInstance?ComponentType=ElasticSearch")
+      val request = HttpRequest(method = HttpMethods.GET, configuration.instanceRegistryUri +
+        s"/matchingInstance?Id=${configuration.instanceId.getOrElse(-1)}&ComponentType=ElasticSearch")
 
       Await.result(Http(system).singleRequest(request) map {response =>
         response.status match {
@@ -188,7 +189,8 @@ object InstanceRegistry extends JsonSupport with AppLogging
         val idToPost = configuration.elasticSearchInstance.id.getOrElse(-1L)
         val request = HttpRequest(
           method = HttpMethods.POST,
-          configuration.instanceRegistryUri + s"/matchingResult?Id=$idToPost&MatchingSuccessful=$isElasticSearchReachable")
+          configuration.instanceRegistryUri +
+            s"/matchingResult?CallerId=${configuration.instanceId.getOrElse(-1)}&MatchedInstanceId=$idToPost&MatchingSuccessful=$isElasticSearchReachable")
 
         Await.result(Http(system).singleRequest(request) map {response =>
           if(response.status == StatusCodes.OK){
