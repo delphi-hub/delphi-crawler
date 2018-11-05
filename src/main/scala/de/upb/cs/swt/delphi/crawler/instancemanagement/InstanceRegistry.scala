@@ -251,7 +251,7 @@ object InstanceRegistry extends JsonSupport with AppLogging
 
   private def createInstance(id: Option[Long], controlPort : Int, name : String) : Instance =
     Instance(id, InetAddress.getLocalHost.getHostAddress,
-      controlPort, name, ComponentType.Crawler, None, InstanceState.Running)
+      controlPort, name, ComponentType.Crawler, None, InstanceState.Running, List.empty[String])
 
 
   object ReportOperationType extends Enumeration {

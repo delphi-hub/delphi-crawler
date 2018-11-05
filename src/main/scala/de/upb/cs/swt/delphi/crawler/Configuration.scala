@@ -42,7 +42,8 @@ class Configuration {
       "Default ElasticSearch instance",
       ComponentType.ElasticSearch,
       None,
-      InstanceState.Running)
+      InstanceState.Running,
+      List.empty[String])
   }
 
   val mavenRepoBase: URI = new URI("http://repo1.maven.org/maven2/") // TODO: Create a local demo server "http://localhost:8881/maven2/"
