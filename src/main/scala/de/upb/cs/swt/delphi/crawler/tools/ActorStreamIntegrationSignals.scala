@@ -14,12 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package de.upb.cs.swt.delphi.crawler
+package de.upb.cs.swt.delphi.crawler.tools
 
-import com.sksamuel.elastic4s.IndexAndType
+object ActorStreamIntegrationSignals {
+  case object Ack
 
-package object storage {
-  val delphi = "delphi"
-  val project = "project"
-  val delphiProjectType: IndexAndType = IndexAndType(delphi,project)
+  case object StreamInitialized
+  case object StreamCompleted
+  final case class StreamFailure(ex: Throwable)
 }

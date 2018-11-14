@@ -14,12 +14,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package de.upb.cs.swt.delphi.crawler
+package de.upb.cs.swt.delphi.crawler.tools
 
-import com.sksamuel.elastic4s.IndexAndType
+@deprecated("Marker class for not yet implemented functionality.")
+class NotYetImplementedException extends Throwable {
 
-package object storage {
-  val delphi = "delphi"
-  val project = "project"
-  val delphiProjectType: IndexAndType = IndexAndType(delphi,project)
 }

@@ -14,12 +14,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package de.upb.cs.swt.delphi.crawler
+package de.upb.cs.swt.delphi.crawler.control
 
-import com.sksamuel.elastic4s.IndexAndType
+import akka.actor.{Actor, ActorLogging, Props}
+import de.upb.cs.swt.delphi.crawler.control.ProcessActor.Go
 
-package object storage {
-  val delphi = "delphi"
-  val project = "project"
-  val delphiProjectType: IndexAndType = IndexAndType(delphi,project)
+/**
+  * A wrapping actor around a blocking process
+  *
+  * @param process
+  * @author Ben Hermann
+  */
+class ProcessActor(process: Process[_]) extends Actor with ActorLogging {
+  override def receive: Receive = {
+    case Go => {
+      val result = process.start
+      sender() ! ProcessScheduler.Finalized(process, result)
+    }
+  }
 }
+
+object ProcessActor {
+  def props(process: Process[_]) = Props(new ProcessActor(process))
+
+  case object Go
+
+}
+

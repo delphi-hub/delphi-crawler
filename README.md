@@ -5,10 +5,10 @@ The automated crawling and processing engine for the Delphi platform.
 We are currently in pre-alpha state! There is no release and the code in
 this repository is purely experimental!
 
-|branch | status | codacy |
-| :---: | :---: | :---: |
-| master | <img src="https://travis-ci.org/delphi-hub/delphi-crawler.svg?branch=master"> | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/d52f09343249401f829585f6edcf6a32)](https://www.codacy.com/app/bhermann/delphi-crawler?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=delphi-hub/delphi-crawler&amp;utm_campaign=Badge_Grade)|
-| develop | <img src="https://travis-ci.org/delphi-hub/delphi-crawler.svg?branch=develop"> | |
+|branch | status | codacy | snyk |
+| :---: | :---: | :---: | :---: |  
+| master | [![Build Status](https://travis-ci.org/delphi-hub/delphi-crawler.svg?branch=master)](https://travis-ci.org/delphi-hub/delphi-crawler) | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/d52f09343249401f829585f6edcf6a32)](https://www.codacy.com/app/bhermann/delphi-crawler?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=delphi-hub/delphi-crawler&amp;utm_campaign=Badge_Grade)| [![Known Vulnerabilities](https://snyk.io/test/github/delphi-hub/delphi-crawler/badge.svg?targetFile=build.sbt)](https://snyk.io/test/github/delphi-hub/delphi-crawler/?targetFile=build.sbt) |
+| develop | [![Build Status](https://travis-ci.org/delphi-hub/delphi-crawler.svg?branch=develop)](https://travis-ci.org/delphi-hub/delphi-crawler)  | [![Codacy Badge](https://api.codacy.com/project/badge/Grade/d52f09343249401f829585f6edcf6a32?branch=develop)](https://www.codacy.com/app/bhermann/delphi-crawler?branch=develop&amp;utm_source=github.com&amp;utm_medium=referral&amp;utm_content=delphi-hub/delphi-crawler&amp;utm_campaign=Badge_Grade) | [![Known Vulnerabilities](https://snyk.io/test/github/delphi-hub/delphi-crawler/develop/badge.svg?targetFile=build.sbt)](https://snyk.io/test/github/delphi-hub/delphi-crawler/develop/?targetFile=build.sbt) |
 
 ## What is the crawler component?
 
@@ -38,6 +38,12 @@ sbt run
 It expects a running instance of elasticsearch on port 9200 on the same machine.
 You can override this default by setting the environment variable `DELPHI_ELASTIC_URI` to connect to your instance.
 The URI format is `elasticsearch://<host>:<port>`.
+
+## Requirements
+
+When using OpenJDK you have to additionally install `openjfx` as one of our dependencies currently requires JavaFX to be present. 
+For many Linux distributions the two packages necessary are `libopenjfx-java` and `openjfx`. 
+For Alpine there are custom packages available [here](https://github.com/sgerrand/alpine-pkg-java-openjfx) and a prepared docker image available [here](https://hub.docker.com/r/delphihub/jre-alpine-openjfx/). 
 
 ## Community
 

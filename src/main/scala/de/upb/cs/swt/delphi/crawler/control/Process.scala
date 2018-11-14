@@ -14,12 +14,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package de.upb.cs.swt.delphi.crawler
+package de.upb.cs.swt.delphi.crawler.control
 
-import com.sksamuel.elastic4s.IndexAndType
+import de.upb.cs.swt.delphi.crawler.control.Phase.Phase
 
-package object storage {
-  val delphi = "delphi"
-  val project = "project"
-  val delphiProjectType: IndexAndType = IndexAndType(delphi,project)
+import scala.util.Try
+
+/**
+  * Describes a (possibly long-running) process
+  *
+  * @tparam T The type of the processes result
+  * @author Ben Hermann
+  */
+trait Process[T] {
+  def phase: Phase
+
+  def start: Try[T]
+
+  def stop: Try[T]
+}
+
+/**
+  * Describes a process phase
+  *
+  * @author Ben Hermann
+  */
+object Phase extends Enumeration {
+  type Phase = Value
+  val Discovery, Processing, ErrorCorrection = Value
 }
