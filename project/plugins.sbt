@@ -28,3 +28,6 @@ addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.9.1")
 // scalastyle
 addSbtPlugin("org.scalastyle" %% "scalastyle-sbt-plugin" % "1.0.0")
 
+//SbtEclipse
+addSbtPlugin("com.typesafe.sbteclipse" % "sbteclipse-plugin" % "5.2.4")
+
