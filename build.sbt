@@ -50,7 +50,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
   "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.8",
-  "com.typesafe.akka" %% "akka-http" % "10.1.5"
+  "com.typesafe.akka" %% "akka-http" % "10.1.5",
+  "io.spray" %% "spray-json" % "1.3.5"
 )
 
 libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.3"
@@ -103,4 +104,12 @@ libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
 libraryDependencies ++= Seq(
     "com.google.guava" % "guava" % "25.1-jre",
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.7"
+)
+
+// Dependencies related to JSAnalyzer 
+libraryDependencies ++=  Seq(
+  "de.srtobi" %% "escalima" % "0.5",
+  "com.lihaoyi" %% "upickle" % "0.6.7",
+  "com.lihaoyi" %% "ujson" % "0.6.7",
+  "net.liftweb" %% "lift-json" % "3.3.0"
 )
