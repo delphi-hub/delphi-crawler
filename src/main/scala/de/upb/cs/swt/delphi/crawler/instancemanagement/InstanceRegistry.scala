@@ -32,7 +32,7 @@ import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 import spray.json._
 
-object InstanceRegistry extends JsonSupport with AppLogging
+object InstanceRegistry extends InstanceJsonSupport with AppLogging
 {
 
   implicit val system : ActorSystem = Crawler.system
@@ -251,7 +251,8 @@ object InstanceRegistry extends JsonSupport with AppLogging
 
   private def createInstance(id: Option[Long], controlPort : Int, name : String) : Instance =
     Instance(id, InetAddress.getLocalHost.getHostAddress,
-      controlPort, name, ComponentType.Crawler, None, InstanceState.Running, List.empty[String])
+      controlPort, name, ComponentType.Crawler, None, InstanceState.Running,
+      List.empty[String], List.empty[InstanceLink], List.empty[InstanceLink])
 
 
   object ReportOperationType extends Enumeration {

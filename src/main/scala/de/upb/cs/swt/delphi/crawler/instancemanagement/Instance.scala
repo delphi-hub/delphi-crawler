@@ -16,61 +16,111 @@
 package de.upb.cs.swt.delphi.crawler.instancemanagement
 
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceEnums.{ComponentType, InstanceState}
 import spray.json.{DefaultJsonProtocol, DeserializationException, JsString, JsValue, JsonFormat}
 
-trait JsonSupport extends SprayJsonSupport with DefaultJsonProtocol {
+/**
+  * Trait defining the implicit JSON formats needed to work with Instances
+  */
+trait InstanceJsonSupport extends SprayJsonSupport with DefaultJsonProtocol with InstanceLinkJsonSupport {
 
-  implicit val componentTypeFormat : JsonFormat[InstanceEnums.ComponentType] = new JsonFormat[InstanceEnums.ComponentType] {
+  //Custom JSON format for an ComponentType
+  implicit val componentTypeFormat : JsonFormat[ComponentType] = new JsonFormat[ComponentType] {
 
-    def write(compType : InstanceEnums.ComponentType) = JsString(compType.toString)
+    /**
+      * Custom write method for serializing an ComponentType
+      * @param compType The ComponentType to serialize
+      * @return JsString containing the serialized value
+      */
+    def write(compType : ComponentType) = JsString(compType.toString)
 
-    def read(value: JsValue) : InstanceEnums.ComponentType = value match {
+    /**
+      * Custom read method for deserialization of an ComponentType
+      * @param value JsValue to deserialize (must be a JsString)
+      * @return ComponentType that has been read
+      * @throws DeserializationException Exception thrown when JsValue is in incorrect format
+      */
+    def read(value: JsValue) : ComponentType = value match {
       case JsString(s) => s match {
-        case "Crawler" => InstanceEnums.ComponentType.Crawler
-        case "WebApi" => InstanceEnums.ComponentType.WebApi
-        case "WebApp" => InstanceEnums.ComponentType.WebApp
-        case "DelphiManagement" => InstanceEnums.ComponentType.DelphiManagement
-        case "ElasticSearch" => InstanceEnums.ComponentType.ElasticSearch
+        case "Crawler" => ComponentType.Crawler
+        case "WebApi" => ComponentType.WebApi
+        case "WebApp" => ComponentType.WebApp
+        case "DelphiManagement" => ComponentType.DelphiManagement
+        case "ElasticSearch" => ComponentType.ElasticSearch
         case x => throw DeserializationException(s"Unexpected string value $x for component type.")
       }
-      case y => throw DeserializationException(s"Unexpected type $y while deserializing component type.")
+      case y => throw DeserializationException(s"Unexpected type $y during deserialization component type.")
     }
   }
 
-  implicit val stateFormat  : JsonFormat[InstanceEnums.State] = new JsonFormat[InstanceEnums.State] {
+  //Custom JSON format for an InstanceState
+  implicit val stateFormat  : JsonFormat[InstanceState] = new JsonFormat[InstanceState] {
 
-    def write(compType : InstanceEnums.State) = JsString(compType.toString)
+    /**
+      * Custom write method for serializing an InstanceState
+      * @param state The InstanceState to serialize
+      * @return JsString containing the serialized value
+      */
+    def write(state : InstanceState) = JsString(state.toString)
 
-    def read(value: JsValue) : InstanceEnums.State = value match {
+    /**
+      * Custom read method for deserialization of an InstanceState
+      * @param value JsValue to deserialize (must be a JsString)
+      * @return InstanceState that has been read
+      * @throws DeserializationException Exception thrown when JsValue is in incorrect format
+      */
+    def read(value: JsValue) : InstanceState = value match {
       case JsString(s) => s match {
-        case "Running" => InstanceEnums.InstanceState.Running
-        case "Stopped" => InstanceEnums.InstanceState.Stopped
-        case "Failed" => InstanceEnums.InstanceState.Failed
-        case "Paused" => InstanceEnums.InstanceState.Paused
-        case "NotReachable" => InstanceEnums.InstanceState.NotReachable
+        case "Running" => InstanceState.Running
+        case "Stopped" => InstanceState.Stopped
+        case "Failed" => InstanceState.Failed
+        case "Paused" => InstanceState.Paused
+        case "NotReachable" => InstanceState.NotReachable
+        case "Deploying" => InstanceState.Deploying
         case x => throw DeserializationException(s"Unexpected string value $x for instance state.")
       }
-      case y => throw DeserializationException(s"Unexpected type $y while deserializing instance state.")
+      case y => throw DeserializationException(s"Unexpected type $y during deserialization instance state.")
     }
   }
 
-  implicit val instanceFormat : JsonFormat[Instance] = jsonFormat8(Instance)
+  //JSON format for Instances
+  implicit val instanceFormat : JsonFormat[Instance] = jsonFormat10(Instance)
 }
 
+/**
+  * The instance type used for transmitting data about an instance from an to the registry
+  * @param id Id of the instance. This is an Option[Long], as an registering instance will not yet have an id.
+  * @param host Host of the instance.
+  * @param portNumber Port the instance is reachable at.
+  * @param name Name of the instance
+  * @param componentType ComponentType of the instance.
+  * @param dockerId The docker container id of the instance. This is an Option[String], as not all instance have to be docker containers.
+  * @param instanceState State of the instance
+  */
 final case class Instance (
                             id: Option[Long],
                             host: String,
                             portNumber: Long,
                             name: String,
-                            componentType: InstanceEnums.ComponentType,
+                            componentType: ComponentType,
                             dockerId: Option[String],
-                            instanceState: InstanceEnums.State,
-                            labels: List[String]
-                          ) {}
+                            instanceState: InstanceState,
+                            labels: List[String],
+                            linksTo: List[InstanceLink],
+                            linksFrom: List[InstanceLink]
+                          )
 
+/**
+  * Enumerations concerning instances
+  */
 object InstanceEnums {
 
+  //Type to use when working with component types
   type ComponentType = ComponentType.Value
+
+  /**
+    * ComponentType enumeration defining the valid types of delphi components
+    */
   object ComponentType extends Enumeration {
     val Crawler  : Value = Value("Crawler")
     val WebApi : Value = Value("WebApi")
@@ -79,8 +129,14 @@ object InstanceEnums {
     val ElasticSearch : Value = Value("ElasticSearch")
   }
 
-  type State = InstanceState.Value
+  //Type to use when working with instance states
+  type InstanceState = InstanceState.Value
+
+  /**
+    * InstanceState enumeration defining the valid states for instances of delphi components
+    */
   object InstanceState extends Enumeration {
+    val Deploying : Value = Value("Deploying")
     val Running : Value = Value("Running")
     val Stopped : Value = Value("Stopped")
     val Failed : Value = Value("Failed")
