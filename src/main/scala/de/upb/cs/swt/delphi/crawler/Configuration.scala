@@ -21,7 +21,7 @@ import java.net.URI
 import akka.stream.ThrottleMode
 import com.sksamuel.elastic4s.ElasticsearchClientUri
 import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceEnums.{ComponentType, InstanceState}
-import de.upb.cs.swt.delphi.crawler.instancemanagement.{Instance, InstanceRegistry}
+import de.upb.cs.swt.delphi.crawler.instancemanagement.{Instance, InstanceLink, InstanceRegistry}
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
@@ -43,7 +43,9 @@ class Configuration {
       ComponentType.ElasticSearch,
       None,
       InstanceState.Running,
-      List.empty[String])
+      List.empty[String],
+      List.empty[InstanceLink],
+      List.empty[InstanceLink])
   }
 
   val mavenRepoBase: URI = new URI("http://repo1.maven.org/maven2/") // TODO: Create a local demo server "http://localhost:8881/maven2/"
