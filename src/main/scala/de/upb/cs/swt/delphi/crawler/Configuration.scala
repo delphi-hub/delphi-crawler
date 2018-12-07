@@ -52,7 +52,7 @@ class Configuration {
   val controlServerPort : Int = 8882
 
   val defaultElasticSearchPort : Int = 9200
-  val defaultElasticSearchHost : String = "elasticsearch://localhost"
+  val defaultElasticSearchHost : String = "elasticsearch://127.0.0.1"
 
   lazy val fallbackElasticSearchPort : Int = sys.env.get("DELPHI_ELASTIC_URI") match {
     case Some(hostString) => if(hostString.count(c => c == ':') == 2){

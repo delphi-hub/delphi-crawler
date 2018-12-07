@@ -21,6 +21,7 @@ import akka.routing.{RoundRobinPool, SmallestMailboxPool}
 import akka.stream.ActorMaterializer
 import com.sksamuel.elastic4s.http.ElasticClient
 import de.upb.cs.swt.delphi.crawler.control.{ProcessScheduler, Server}
+import de.upb.cs.swt.delphi.crawler.discovery.cve.DiscoveryProcess
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenDiscoveryProcess
 import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceRegistry
 import de.upb.cs.swt.delphi.crawler.preprocessing.PreprocessingDispatchActor
@@ -79,7 +80,7 @@ object Crawler extends App with AppLogging {
 */
 
   val processScheduler = system.actorOf(ProcessScheduler.props)
-  processScheduler ! ProcessScheduler.Enqueue(new MavenDiscoveryProcess(configuration, elasticPool))
+  processScheduler ! ProcessScheduler.Enqueue(new DiscoveryProcess(configuration, elasticPool))
 
 
 }
