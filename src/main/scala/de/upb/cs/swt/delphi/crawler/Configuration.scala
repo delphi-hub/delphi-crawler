@@ -96,6 +96,8 @@ class Configuration {
 
   lazy val instanceId : Option[Long] = InstanceRegistry.handleInstanceStart(this)
 
+  val jwtSecretKey: String  = sys.env.getOrElse("DELPHI_JWT_SECRET","changeme")
+
   case class Throttle(element : Int, per : FiniteDuration, maxBurst : Int, mode : ThrottleMode)
 }
 
