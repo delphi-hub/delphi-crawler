@@ -21,9 +21,11 @@ import java.net.InetAddress
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
+import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
+import de.upb.cs.swt.delphi.crawler.authorization.AuthProvider
 import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceEnums.{ComponentType, InstanceState}
 import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration, Crawler}
 
@@ -99,7 +101,10 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
           method = HttpMethods.POST,
           configuration.instanceRegistryUri + ReportOperationType.toOperationUriString(operationType, id))
 
-        Await.result(Http(system).singleRequest(request) map {response =>
+        val useGenericNameForToken = operationType == ReportOperationType.Start //Must use generic name for startup, no id known at that point
+
+        Await.result(Http(system).singleRequest(request.withHeaders(RawHeader("Authorization",
+          s"Bearer ${AuthProvider.generateJwt(useGenericName = useGenericNameForToken)(configuration)}"))) map { response =>
           if(response.status == StatusCodes.OK){
             log.info(s"Successfully reported ${operationType.toString} to Instance Registry.")
             Success()
@@ -122,7 +127,7 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
   private def register(configuration: Configuration) : Try[Long] = {
     val instance = createInstance(None,configuration.controlServerPort, configuration.instanceName)
 
-    Await.result(postInstance(instance, configuration.instanceRegistryUri + "/register") map {response =>
+    Await.result(postInstance(instance, configuration.instanceRegistryUri + "/register")(configuration) map {response =>
       if(response.status == StatusCodes.OK){
         Await.result(Unmarshal(response.entity).to[String] map { assignedID =>
           val id = assignedID.toLong
@@ -152,7 +157,8 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
       val request = HttpRequest(method = HttpMethods.GET, configuration.instanceRegistryUri +
         s"/matchingInstance?Id=${configuration.instanceId.getOrElse(-1)}&ComponentType=ElasticSearch")
 
-      Await.result(Http(system).singleRequest(request) map {response =>
+      Await.result(Http(system).singleRequest(request
+        .withHeaders(RawHeader("Authorization", s"Bearer ${AuthProvider.generateJwt()(configuration)}"))) map {response =>
         response.status match {
           case StatusCodes.OK =>
             val instanceString : String = Await.result(response.entity.dataBytes.runFold(ByteString(""))(_ ++ _).map(_.utf8String), 5 seconds)
@@ -192,7 +198,8 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
           configuration.instanceRegistryUri +
             s"/matchingResult?CallerId=${configuration.instanceId.getOrElse(-1)}&MatchedInstanceId=$idToPost&MatchingSuccessful=$isElasticSearchReachable")
 
-        Await.result(Http(system).singleRequest(request) map {response =>
+        Await.result(Http(system).singleRequest(request
+          .withHeaders(RawHeader("Authorization", s"Bearer ${AuthProvider.generateJwt()(configuration)}"))) map {response =>
           if(response.status == StatusCodes.OK){
             log.info("Successfully posted matching result to Instance Registry.")
             Success()
@@ -220,7 +227,8 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
 
       val request = HttpRequest(method = HttpMethods.POST, configuration.instanceRegistryUri + s"/deregister?Id=$id")
 
-      Await.result(Http(system).singleRequest(request) map {response =>
+      Await.result(Http(system).singleRequest(request
+        .withHeaders(RawHeader("Authorization", s"Bearer ${AuthProvider.generateJwt()(configuration)}"))) map {response =>
         if(response.status == StatusCodes.OK){
           log.info("Successfully deregistered from Instance Registry.")
           Success()
@@ -238,9 +246,11 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
     }
   }
 
-  def postInstance(instance : Instance, uri: String) () : Future[HttpResponse] = {
+  def postInstance(instance : Instance, uri: String) (implicit configuration: Configuration) : Future[HttpResponse] = {
     Try(HttpRequest(method = HttpMethods.POST, uri = uri, entity = instance.toJson(instanceFormat).toString())) match {
-      case Success(request) => Http(system).singleRequest(request)
+      //use generic name for startup, no id present at this point
+      case Success(request) => Http(system).singleRequest(request
+        .withHeaders(RawHeader("Authorization", s"Bearer ${AuthProvider.generateJwt(useGenericName = true)(configuration)}")))
       case Failure(dx) =>
         log.warning(s"Failed to deregister to Instance Registry, exception: $dx")
         Future.failed(dx)

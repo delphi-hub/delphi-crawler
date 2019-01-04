@@ -55,6 +55,8 @@ libraryDependencies ++= Seq(
 
 libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.3"
 
+libraryDependencies += "com.pauldijou" %% "jwt-core" % "1.0.0"
+
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3" % Runtime
 
 val elastic4sVersion = "6.3.0"
