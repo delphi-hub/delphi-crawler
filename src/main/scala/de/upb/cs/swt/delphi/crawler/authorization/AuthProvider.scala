@@ -25,8 +25,8 @@ object AuthProvider {
       .issuedNow
       .expiresIn(validFor * 60)
       .startsNow
-      .+("user_id", if (useGenericName) configuration.instanceName else s"${configuration.instanceId.get}")
-      .+("user_type", "Component")
+      . + ("user_id", if (useGenericName) configuration.instanceName else s"${configuration.instanceId.get}")
+      . + ("user_type", "Component")
 
 
     Jwt.encode(claim, configuration.jwtSecretKey, JwtAlgorithm.HS256)
