@@ -127,7 +127,7 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
   private def register(configuration: Configuration) : Try[Long] = {
     val instance = createInstance(None,configuration.controlServerPort, configuration.instanceName)
 
-    Await.result(postInstance(instance, configuration.instanceRegistryUri + "/register")(configuration) map {response =>
+    Await.result(postInstance(instance, configuration.instanceRegistryUri + "/instances/register")(configuration) map {response =>
       if(response.status == StatusCodes.OK){
         Await.result(Unmarshal(response.entity).to[String] map { assignedID =>
           val id = assignedID.toLong
@@ -155,7 +155,7 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
       Failure(new RuntimeException("Cannot get ElasticSearch instance from Instance Registry, no Instance Registry available."))
     } else {
       val request = HttpRequest(method = HttpMethods.GET, configuration.instanceRegistryUri +
-        s"/matchingInstance?Id=${configuration.instanceId.getOrElse(-1)}&ComponentType=ElasticSearch")
+        s"/instances/${configuration.instanceId.getOrElse(-1)}/matchingInstance?ComponentType=ElasticSearch")
 
       Await.result(Http(system).singleRequest(request
         .withHeaders(RawHeader("Authorization", s"Bearer ${AuthProvider.generateJwt()(configuration)}"))) map {response =>
@@ -193,13 +193,17 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
         Failure(new RuntimeException("The ElasticSearch instance was not assigned by the Instance Registry, so no matching result will be posted."))
       } else {
         val idToPost = configuration.elasticSearchInstance.id.getOrElse(-1L)
+
+        val MatchingData = JsObject("MatchingSuccessful" -> JsBoolean(isElasticSearchReachable),
+          "SenderId" -> JsNumber(configuration.instanceId.getOrElse(-1L)))
+
         val request = HttpRequest(
           method = HttpMethods.POST,
-          configuration.instanceRegistryUri +
-            s"/matchingResult?CallerId=${configuration.instanceId.getOrElse(-1)}&MatchedInstanceId=$idToPost&MatchingSuccessful=$isElasticSearchReachable")
+          configuration.instanceRegistryUri + s"/instances/$idToPost/matchingResult")
 
         Await.result(Http(system).singleRequest(request
-          .withHeaders(RawHeader("Authorization", s"Bearer ${AuthProvider.generateJwt()(configuration)}"))) map {response =>
+          .withHeaders(RawHeader("Authorization", s"Bearer ${AuthProvider.generateJwt()(configuration)}"))
+          .withEntity(ContentTypes.`application/json`, ByteString(MatchingData.toJson.toString))) map {response =>
           if(response.status == StatusCodes.OK){
             log.info("Successfully posted matching result to Instance Registry.")
             Success()
@@ -225,7 +229,7 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
     } else {
       val id : Long = configuration.instanceId.getOrElse(-1L)
 
-      val request = HttpRequest(method = HttpMethods.POST, configuration.instanceRegistryUri + s"/deregister?Id=$id")
+      val request = HttpRequest(method = HttpMethods.POST, configuration.instanceRegistryUri + s"/instances/$id/deregister")
 
       Await.result(Http(system).singleRequest(request
         .withHeaders(RawHeader("Authorization", s"Bearer ${AuthProvider.generateJwt()(configuration)}"))) map {response =>
@@ -247,10 +251,11 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
   }
 
   def postInstance(instance : Instance, uri: String) (implicit configuration: Configuration) : Future[HttpResponse] = {
-    Try(HttpRequest(method = HttpMethods.POST, uri = uri, entity = instance.toJson(instanceFormat).toString())) match {
+    Try(HttpRequest(method = HttpMethods.POST, uri = uri)) match {
       //use generic name for startup, no id present at this point
       case Success(request) => Http(system).singleRequest(request
-        .withHeaders(RawHeader("Authorization", s"Bearer ${AuthProvider.generateJwt(useGenericName = true)(configuration)}")))
+        .withHeaders(RawHeader("Authorization", s"Bearer ${AuthProvider.generateJwt(useGenericName = true)(configuration)}"))
+        .withEntity(ContentTypes.`application/json`, ByteString(instance.toJson(instanceFormat).toString)))
       case Failure(dx) =>
         log.warning(s"Failed to deregister to Instance Registry, exception: $dx")
         Future.failed(dx)
@@ -273,11 +278,11 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
     def toOperationUriString(operation: ReportOperationType.Value, id: Long) : String = {
       operation match {
         case Start =>
-          s"/reportStart?Id=$id"
+          s"/instances/$id/reportStart"
         case Stop =>
-          s"/reportStop?Id=$id"
+          s"/instances/$id/reportStop"
         case _ =>
-          s"/reportFailure?Id=$id"
+          s"/instances/$id/reportFailure"
       }
     }
   }
