@@ -194,7 +194,7 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
       } else {
         val idToPost = configuration.elasticSearchInstance.id.getOrElse(-1L)
 
-        val MatchingData = JsObject("MatchingSuccessful" -> JsBoolean(isElasticSearchReachable),
+        val matchingData = JsObject("MatchingSuccessful" -> JsBoolean(isElasticSearchReachable),
           "SenderId" -> JsNumber(configuration.instanceId.getOrElse(-1L)))
 
         val request = HttpRequest(
@@ -203,7 +203,7 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
 
         Await.result(Http(system).singleRequest(request
           .withHeaders(RawHeader("Authorization", s"Bearer ${AuthProvider.generateJwt()(configuration)}"))
-          .withEntity(ContentTypes.`application/json`, ByteString(MatchingData.toJson.toString))) map {response =>
+          .withEntity(ContentTypes.`application/json`, ByteString(matchingData.toJson.toString))) map {response =>
           if(response.status == StatusCodes.OK){
             log.info("Successfully posted matching result to Instance Registry.")
             Success()
