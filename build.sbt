@@ -104,5 +104,5 @@ libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
 // Please update when updating dependencies above (including Play plugin)
 libraryDependencies ++= Seq(
     "com.google.guava" % "guava" % "25.1-jre",
-  "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.7"
+  "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.9"
 )
