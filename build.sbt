@@ -1,3 +1,19 @@
+// Copyright (C) 2018 The Delphi Team.
+// See the LICENCE file distributed with this work for additional
+// information regarding copyright ownership.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 name := "delphi-crawler"
 
 version := "1.0.0-SNAPSHOT"
@@ -8,7 +24,7 @@ lazy val crawler = (project in file(".")).
   enablePlugins(JavaAppPackaging).
   enablePlugins(DockerPlugin).
   settings (
-    dockerBaseImage := "openjdk:jre-alpine"
+    dockerBaseImage := "delphihub/jre-alpine-openjfx"
   ).
   enablePlugins(ScalastylePlugin).
   enablePlugins(AshScriptPlugin).
@@ -33,8 +49,13 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream" % akkaVersion,
   "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-  "com.typesafe.akka" %% "akka-http" % "10.1.3"
+  "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.8",
+  "com.typesafe.akka" %% "akka-http" % "10.1.5"
 )
+
+libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.3"
+
+libraryDependencies += "com.pauldijou" %% "jwt-core" % "1.0.0"
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3" % Runtime
 
@@ -77,8 +98,11 @@ libraryDependencies ++= Seq(
 libraryDependencies += "org.apache.maven.indexer" % "indexer-reader" % "6.0.0"
 libraryDependencies += "org.apache.maven.indexer" % "indexer-core" % "6.0.0"
 
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
+
 // Pinning secure versions of insecure transitive libraryDependencies
 // Please update when updating dependencies above (including Play plugin)
 libraryDependencies ++= Seq(
-    "com.google.guava" % "guava" % "25.1-jre"
+    "com.google.guava" % "guava" % "25.1-jre",
+  "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.9"
 )

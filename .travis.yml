@@ -1,3 +1,4 @@
+dist: trusty
 language: scala
 scala:
   -  2.12.4
@@ -6,3 +7,5 @@ script:
   - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then sbt ++$TRAVIS_SCALA_VERSION coverage test coverageReport coverageAggregate codacyCoverage; fi'
 after_success:
   - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then bash <(curl -s https://codecov.io/bash); fi'
+jdk:
+  - oraclejdk8
