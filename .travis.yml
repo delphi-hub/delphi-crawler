@@ -6,8 +6,5 @@ script:
   - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then sbt ++$TRAVIS_SCALA_VERSION coverage test coverageReport coverageAggregate codacyCoverage; fi'
 after_success:
   - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then bash <(curl -s https://codecov.io/bash); fi'
-before_install:
-  - sudo apt-get install -y libopenjfx-java openjfx
-addons:
-  apt:
-    update: true
+jdk:
+  - oraclejdk8
