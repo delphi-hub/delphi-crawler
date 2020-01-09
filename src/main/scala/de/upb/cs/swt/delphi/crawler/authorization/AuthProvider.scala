@@ -15,10 +15,14 @@
 // limitations under the License.
 package de.upb.cs.swt.delphi.crawler.authorization
 
+import java.time.Clock
+
 import de.upb.cs.swt.delphi.crawler.Configuration
 import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim}
 
 object AuthProvider {
+
+  implicit val clock: Clock = Clock.systemUTC
 
   def generateJwt(validFor: Long = 1, useGenericName: Boolean = false) (implicit configuration: Configuration): String = {
     val claim = JwtClaim()
