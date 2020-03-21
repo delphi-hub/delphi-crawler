@@ -20,11 +20,13 @@ import java.net.{URI, URLEncoder}
 import java.nio.charset.StandardCharsets
 
 import de.upb.cs.swt.delphi.crawler.Identifier
+import org.apache.commons.logging.LogFactory
 
 case class MavenIdentifier(val repository: String, val groupId: String, val artifactId: String, val version: String) extends Identifier {
   def toUniqueString = {
     repository + ":" + groupId + ":" + artifactId + ":" + version
   }
+
 
   override val toString: String = groupId + ":" + artifactId + ":" + version
 
@@ -44,4 +46,26 @@ case class MavenIdentifier(val repository: String, val groupId: String, val arti
 
   private def encode(input : String) : String =
     URLEncoder.encode(input, StandardCharsets.UTF_8.toString())
+}
+
+object MavenIdentifier {
+  private val DefaultRepository = "https://repo1.maven.org/maven2/"
+
+  private val log = LogFactory.getLog(MavenIdentifier.getClass)
+
+  private implicit def wrapOption[A](value : A) : Option[A] = Some(value)
+
+  def apply(s: String): Option[MavenIdentifier] = {
+    if (!s.startsWith(DefaultRepository)) return None
+    val identifier = s.replace(DefaultRepository + ":", "")
+    val splitString: Array[String] = identifier.split(':')
+    if (splitString.length < 2 || splitString.length > 3) return None
+
+    MavenIdentifier(
+      repository = DefaultRepository,
+      groupId = splitString(0),
+      artifactId = splitString(1),
+      version = if (splitString.length < 3) "" else splitString(2))
+
+  }
 }
