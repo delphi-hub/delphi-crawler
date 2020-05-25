@@ -14,6 +14,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+
 name := "delphi-crawler"
 
 version := "1.0.0-SNAPSHOT"
@@ -60,6 +61,7 @@ libraryDependencies += "com.pauldijou" %% "jwt-core" % "1.0.0"
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3" % Runtime
 
 val elastic4sVersion = "6.3.0"
+
 libraryDependencies ++= Seq(
   "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion,
 
@@ -103,6 +105,37 @@ libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
 // Pinning secure versions of insecure transitive libraryDependencies
 // Please update when updating dependencies above (including Play plugin)
 libraryDependencies ++= Seq(
-    "com.google.guava" % "guava" % "25.1-jre",
+  "com.google.guava" % "guava" % "25.1-jre",
   "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.9"
 )
+
+// libraryDependencies for CryptoAnalysis
+
+libraryDependencies += "de.fraunhofer.iem" % "CryptoAnalysis" % "2.7.2-SNAPSHOT-jar-with-dependencies" from
+  "file:///C:\\Users\\Delphi_Cognicrypt\\CryptoAnalysis-2.7.2-SNAPSHOT-jar-with-dependencies.jar"
+
+resolvers += "JavaCryptographicArchitecture" at "https://soot-build.cs.uni-paderborn.de/nexus/repository/soot-release/"
+
+libraryDependencies += ("de.darmstadt.tu.crossing" % "JavaCryptographicArchitecture" % "1.5.0").artifacts(
+  Artifact("JavaCryptographicArchitecture", "zip", "zip", "ruleset"))
+
+
+// Task to unzip the utils ZIP file to the target directory so we can define a package mapping
+lazy val unpackExternalArtifact = taskKey[Unit]("Unzip the JavaCryptographicArchitecture-1.5.0-ruleset.zip and stores in \"project\" folder")
+val basePath = taskKey[File]("JCA Rules path")
+basePath := baseDirectory.value / "project"
+unpackExternalArtifact := {
+  val dest = basePath.value
+  val log = streams.value.log
+  val configRef = ConfigRef("compile")
+  val cReport: ConfigurationReport = (update in Compile).value.configuration(configRef).get
+  cReport.modules.foreach{ mReport =>
+    if (mReport.module.name.startsWith("JavaCryptographicArchitecture")) {
+      mReport.artifacts.foreach{ case (_, f) =>
+        log.info(s"Unpacking JavaCryptographicArchitecture bundle: ${f.getAbsolutePath}")
+        IO.unzip(f, dest)
+      }
+    }
+  }
+}
+

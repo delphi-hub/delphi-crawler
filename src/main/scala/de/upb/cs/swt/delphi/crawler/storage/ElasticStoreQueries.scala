@@ -23,7 +23,7 @@ import com.sksamuel.elastic4s.http.update.UpdateResponse
 import com.sksamuel.elastic4s.http.{ElasticClient, Response}
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.processing.{HermesAnalyzer, HermesResults}
+import de.upb.cs.swt.delphi.crawler.processing.{CryptoAnalysisResult, HermesAnalyzer, HermesResults}
 import org.joda.time.DateTime
 
 /**
@@ -46,6 +46,19 @@ trait ElasticStoreQueries {
             "runOn" -> DateTime.now()))
         }.await)
       case None => log.warning(s"Tried to push hermes results for non-existing identifier: ${h.identifier}."); None
+    }
+  }
+
+  def store(cc: CryptoAnalysisResult)(implicit client: ElasticClient, log: LoggingAdapter): Option[Response[UpdateResponse]] = {
+    elasticId(cc.identifier) match {
+      case Some(id) =>
+        log.info(s"Pushing Crypto analysis results for ${cc.identifier} under id $id.")
+        Some(client.execute {
+          update(id).in(delphiProjectType).doc("cognicrypt" -> Map(
+            "features" -> cc.cryptoErrorMap,
+            "runOn" -> DateTime.now()))
+        }.await)
+      case None => log.warning(s"Tried to push crypto analysis results for non-existing identifier: ${cc.identifier}."); None
     }
   }
 

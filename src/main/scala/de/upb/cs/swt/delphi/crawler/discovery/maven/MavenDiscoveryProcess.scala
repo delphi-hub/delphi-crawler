@@ -29,7 +29,7 @@ import de.upb.cs.swt.delphi.crawler.control.Phase
 import de.upb.cs.swt.delphi.crawler.control.Phase.Phase
 import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
 import de.upb.cs.swt.delphi.crawler.preprocessing.{MavenArtifact, MavenDownloadActor}
-import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesResults}
+import de.upb.cs.swt.delphi.crawler.processing.{CryptoAnalysisActor, CryptoAnalysisResult, HermesActor, HermesResults}
 import de.upb.cs.swt.delphi.crawler.storage.ArtifactExistsQuery
 import de.upb.cs.swt.delphi.crawler.tools.NotYetImplementedException
 
@@ -58,6 +58,7 @@ class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
 
   val downloaderPool = system.actorOf(SmallestMailboxPool(8).props(MavenDownloadActor.props))
   val hermesPool = system.actorOf(SmallestMailboxPool(configuration.hermesActorPoolSize).props(HermesActor.props()))
+  val cogniCryptPool = system.actorOf(SmallestMailboxPool(configuration.cognicryptActorPoolSize).props(CryptoAnalysisActor.props()))
 
   override def phase: Phase = Phase.Discovery
 
@@ -96,6 +97,15 @@ class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
         .filter(results => results.isSuccess)
         .map(results => results.get)
         .alsoTo(createSinkFromActorRef[HermesResults](elasticPool))
+        .to(Sink.ignore)
+        .run()
+
+    val cogniCryptAnalysis =
+      preprocessing
+        .mapAsync(configuration.cognicryptActorPoolSize)(artifact => (cogniCryptPool ? artifact).mapTo[Try[CryptoAnalysisResult]])
+        .filter(analysisResults => analysisResults.isSuccess)
+        .map(analysisResults => analysisResults.get)
+        .alsoTo(createSinkFromActorRef[CryptoAnalysisResult](elasticPool))
         .to(Sink.ignore)
         .run()
 
