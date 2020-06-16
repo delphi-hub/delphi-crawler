@@ -18,7 +18,7 @@ name := "delphi-crawler"
 
 version := "0.9.5-SNAPSHOT"
 
-scalaVersion := "2.12.10"
+scalaVersion := "2.12.11"
 
 lazy val crawler = (project in file(".")).
   enablePlugins(JavaAppPackaging).
@@ -38,11 +38,12 @@ lazy val crawler = (project in file(".")).
 
 scalastyleConfig := baseDirectory.value / "project" / "scalastyle-config.xml"
 
-mainClass in(Compile, run) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
-mainClass in(Compile, packageBin) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
-mainClass in Compile := Some("de.upb.cs.swt.delphi.crawler.Crawler")
+//mainClass in(Compile, run) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
+//mainClass in(Compile, packageBin) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
+//mainClass in Compile := Some("de.upb.cs.swt.delphi.crawler.Crawler")
 
-val akkaVersion = "2.6.1"
+
+val akkaVersion = "2.6.4"
 
 val akkaHttpVersion = "10.1.11"
 
@@ -57,7 +58,9 @@ libraryDependencies ++= Seq(
 )
 
 libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.6.7"
-
+libraryDependencies += "com.lihaoyi" %% "fansi" % "0.2.7"
+libraryDependencies += "org.fusesource.jansi" % "jansi" % "1.18"
+libraryDependencies += "com.googlecode.lanterna" % "lanterna" % "3.0.3"
 libraryDependencies += "com.pauldijou" %% "jwt-core" % "4.2.0"
 
 val elastic4sVersion = "6.7.4"

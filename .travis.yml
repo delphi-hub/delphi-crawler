@@ -1,7 +1,7 @@
 dist: trusty
 language: scala
 scala:
-  -  2.12.10
+  -  2.12.11
 script:
   - 'if [ "$TRAVIS_PULL_REQUEST" != "false" ]; then sbt ++$TRAVIS_SCALA_VERSION test; fi'
 #  - 'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then sbt ++$TRAVIS_SCALA_VERSION test; fi'
