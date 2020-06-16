@@ -53,7 +53,7 @@ object Crawler extends App with AppLogging {
   })
 
 
-  Startup.showStartupInfo
+  Startup.logStartupInfo
   Startup.preflightCheck(configuration) match {
     case Success(c) =>
     case Failure(e) => {

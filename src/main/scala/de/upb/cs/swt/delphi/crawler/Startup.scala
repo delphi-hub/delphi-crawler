@@ -23,9 +23,17 @@ import scala.util.{Failure, Success, Try}
 
 object Startup extends AppLogging {
 
-  def showStartupInfo(implicit system : ActorSystem) = {
-    log.info(s"Delphi Crawler (${BuildInfo.name} ${BuildInfo.version})")
-    log.info(s"Running on Scala ${BuildInfo.scalaVersion}")
+  def logStartupInfo(implicit system : ActorSystem) = {
+    produceStartupInfo(log.info)
+  }
+
+  def printStartInfo() : Unit = {
+    produceStartupInfo(println)
+  }
+
+  private def produceStartupInfo(output : String => Unit) : Unit = {
+    output(s"Delphi Crawler (${BuildInfo.name} ${BuildInfo.version})")
+    output(s"Running on Scala ${BuildInfo.scalaVersion} using JVM ${System.getProperty("java.version")}.")
   }
 
   def preflightCheck(configuration: Configuration)(implicit system : ActorSystem) : Try[Configuration] = {
