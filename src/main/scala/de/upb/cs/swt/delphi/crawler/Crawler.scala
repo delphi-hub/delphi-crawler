@@ -20,7 +20,7 @@ import akka.actor.ActorSystem
 import akka.routing.{RoundRobinPool, SmallestMailboxPool}
 import akka.stream.ActorMaterializer
 import com.sksamuel.elastic4s.http.ElasticClient
-import de.upb.cs.swt.delphi.crawler.control.{ProcessScheduler, Server}
+import de.upb.cs.swt.delphi.crawler.control.{CLI, ProcessScheduler, Server}
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenDiscoveryProcess
 import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceRegistry
 import de.upb.cs.swt.delphi.crawler.preprocessing.PreprocessingDispatchActor
@@ -47,10 +47,8 @@ object Crawler extends App with AppLogging {
 
   sys.addShutdownHook({
     log.warning("Received shutdown signal.")
-    InstanceRegistry.handleInstanceStop(configuration)
-    val future = system.terminate()
-    Await.result(future, 120.seconds)
   })
+
 
 
   Startup.logStartupInfo
@@ -68,8 +66,10 @@ object Crawler extends App with AppLogging {
 
   new Server(configuration.controlServerPort).start()
 
-  val elasticPool = system.actorOf(RoundRobinPool(configuration.elasticActorPoolSize)
-    .props(ElasticActor.props(ElasticClient(configuration.elasticsearchClientUri))))
+  CLI.start()
+
+  // val elasticPool = system.actorOf(RoundRobinPool(configuration.elasticActorPoolSize)
+  //  .props(ElasticActor.props(ElasticClient(configuration.elasticsearchClientUri))))
 
   /*
   val hermesPool = system.actorOf(SmallestMailboxPool(configuration.hermesActorPoolSize).props(HermesActor.props()))
@@ -78,8 +78,8 @@ object Crawler extends App with AppLogging {
   val preprocessingDispatchActor = system.actorOf(PreprocessingDispatchActor.props(configuration, processingDispatchActor, elasticPool))
 */
 
-  val processScheduler = system.actorOf(ProcessScheduler.props)
-  processScheduler ! ProcessScheduler.Enqueue(new MavenDiscoveryProcess(configuration, elasticPool))
+  // val processScheduler = system.actorOf(ProcessScheduler.props)
+  // processScheduler ! ProcessScheduler.Enqueue(new MavenDiscoveryProcess(configuration, elasticPool))
 
 
 }
