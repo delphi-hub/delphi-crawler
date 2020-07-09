@@ -93,7 +93,7 @@ class MavenDependencyActor(configuration: Configuration) extends Actor with Acto
   }
 
   def getDependencies(pomFile: PomFile): Set[MavenIdentifier] = {
-    val pomObj = pomReader.read(new ByteArrayInputStream(pomFile.content))
+    val pomObj = pomReader.read(pomFile.is)
 
     val pomSet = pomObj.getDependencies.asScala.toSet[Dependency].map(resolveIdentifier(_, pomObj))
     for (util.Success(id) <- pomSet) yield id

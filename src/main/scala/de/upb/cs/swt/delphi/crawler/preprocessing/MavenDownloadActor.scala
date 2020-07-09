@@ -21,7 +21,6 @@ import java.util.Locale
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.tools.HttpDownloader
-import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 
 import scala.util.{Failure, Success, Try}
@@ -51,12 +50,8 @@ class MavenDownloadActor extends Actor with ActorLogging {
                 case _ => None
               }
 
-              val pomFile = PomFile(Stream.continually(pomStream.read).takeWhile(_ != -1).map(_.toByte).toArray)
-
-              // Build and initialize metadata from POM
-              val metadata = MavenArtifactMetadata.readFromPom(pomPublicationDate.orNull, pomFile).orNull
-
-              sender() ! Success(MavenArtifact(m, JarFile(jar, m.toJarLocation.toURL), pomFile, metadata))
+              sender() ! Success(MavenArtifact(m, JarFile(jar, m.toJarLocation.toURL), PomFile(pomStream),
+                pomPublicationDate, None))
             }
             case Failure(e) => {
               // TODO: push error to actor

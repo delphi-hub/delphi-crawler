@@ -16,22 +16,16 @@
 
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
-import java.io.ByteArrayInputStream
-
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
-import org.apache.maven.model.io.xpp3.MavenXpp3Reader
 import org.joda.time.DateTime
 
-case class MavenArtifact(identifier : MavenIdentifier, jarFile: JarFile, pomFile: PomFile, metadata: MavenArtifactMetadata)
+case class MavenArtifact(identifier : MavenIdentifier, jarFile: JarFile, pomFile: PomFile,
+                         publicationDate: Option[DateTime], metadata: Option[MavenArtifactMetadata])
 
-case class MavenArtifactMetadata(publicationDate: DateTime, name: String, description: String)
+case class MavenArtifactMetadata(name: String, description: String)
 
-object MavenArtifactMetadata {
-  def readFromPom(pubDate: DateTime, pomFile: PomFile): Option[MavenArtifactMetadata] = {
-    val pomReader: MavenXpp3Reader = new MavenXpp3Reader()
-
-    val pomObj = pomReader.read(new ByteArrayInputStream(pomFile.content))
-
-    Some(MavenArtifactMetadata(pubDate, pomObj.getName, pomObj.getDescription))
+object MavenArtifact{
+  def withMetadata(artifact: MavenArtifact, metadata: MavenArtifactMetadata): MavenArtifact = {
+    MavenArtifact(artifact.identifier, artifact.jarFile, artifact.pomFile, artifact.publicationDate, Some(metadata))
   }
 }

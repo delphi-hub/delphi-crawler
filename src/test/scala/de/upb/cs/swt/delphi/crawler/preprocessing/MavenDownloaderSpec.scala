@@ -30,7 +30,7 @@ class MavenDownloaderSpec extends FlatSpec with Matchers {
     val mavenIdentifier = new MavenIdentifier("http://central.maven.org/maven2/", "junit", "junit", "4.12")
     val downloader = new MavenDownloader(mavenIdentifier)
     val pomStream = downloader.downloadPom()
-    checkPom(pomStream.content)
+    checkPom(pomStream.is)
   }
 
 }

@@ -51,7 +51,7 @@ class MavenDownloader(identifier: MavenIdentifier) {
   }
 
   def downloadPom(): PomFile = {
-    PomFile(Stream.continually(pomResource.read().read).takeWhile(_ != -1).map(_.toByte).toArray)
+    PomFile(pomResource.read())
   }
 
   def downloadMeta(): MetaFile = {

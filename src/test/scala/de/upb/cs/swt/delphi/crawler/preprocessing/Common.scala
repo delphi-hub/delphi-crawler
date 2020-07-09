@@ -44,10 +44,11 @@ object Common {
     assert(jarPath.toFile.exists())
     assert(jarPath.toFile.length() > 0)
   }
-  def checkPom(content: Array[Byte]):Unit={
+  def checkPom(is: InputStream):Unit={
+    val pomBytes = inputStreamToBytes(is)
     val tmpDir = System.getProperty("java.io.tmpdir")
     val pomPath = Paths.get(tmpDir).resolve("pom.xml")
-    Files.write(pomPath, content)
+    Files.write(pomPath, pomBytes)
     assert(pomPath.toFile.exists())
     assert(pomPath.toFile.length() > 0)
   }
