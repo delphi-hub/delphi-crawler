@@ -1,5 +1,7 @@
 package de.upb.cs.swt.delphi.crawler.processing
 
+import java.io.ByteArrayInputStream
+
 import akka.actor.{Actor, ActorLogging, Props}
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
@@ -91,8 +93,7 @@ class MavenDependencyActor(configuration: Configuration) extends Actor with Acto
   }
 
   def getDependencies(pomFile: PomFile): Set[MavenIdentifier] = {
-    val pomObj = pomReader.read(pomFile.is)
-    pomFile.is.close()
+    val pomObj = pomReader.read(new ByteArrayInputStream(pomFile.content))
 
     val pomSet = pomObj.getDependencies.asScala.toSet[Dependency].map(resolveIdentifier(_, pomObj))
     for (util.Success(id) <- pomSet) yield id

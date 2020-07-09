@@ -16,11 +16,15 @@
 
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
+import java.util.Locale
+
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.tools.HttpDownloader
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 class MavenDownloadActor extends Actor with ActorLogging {
   override def receive: Receive = {
@@ -30,14 +34,29 @@ class MavenDownloadActor extends Actor with ActorLogging {
       val downloader = new HttpDownloader
 
       val jarStream = downloader.downloadFromUri(m.toJarLocation.toString())
-      val pomStream = downloader.downloadFromUri(m.toPomLocation.toString())
+      val pomResponse = downloader.downloadFromUriWithHeaders(m.toPomLocation.toString())
 
       jarStream match {
         case Success(jar) => {
-          pomStream match {
-            case Success(pom) => {
+          pomResponse match {
+            case Success((pomStream, pomHeaders)) => {
               log.info(s"Downloaded $m")
-              sender() ! Success(MavenArtifact(m, JarFile(jar, m.toJarLocation.toURL), PomFile(pom)))
+
+              // Extract and parse publication date from header
+              val datePattern = DateTimeFormat.forPattern("E, dd MMM yyyy HH:mm:ss zzz").withLocale(Locale.ENGLISH)
+              val pomPublicationDate = pomHeaders.find( _.lowercaseName().equals("last-modified") )
+                .map( header => Try(datePattern.parseDateTime(header.value())) ) match {
+                case Some(Success(date)) => Some(date)
+                case Some(Failure(x)) => x.printStackTrace(); None
+                case _ => None
+              }
+
+              val pomFile = PomFile(Stream.continually(pomStream.read).takeWhile(_ != -1).map(_.toByte).toArray)
+
+              // Build and initialize metadata from POM
+              val metadata = MavenArtifactMetadata.readFromPom(pomPublicationDate.orNull, pomFile).orNull
+
+              sender() ! Success(MavenArtifact(m, JarFile(jar, m.toJarLocation.toURL), pomFile, metadata))
             }
             case Failure(e) => {
               // TODO: push error to actor

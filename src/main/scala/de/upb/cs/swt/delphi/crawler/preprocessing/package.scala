@@ -33,9 +33,9 @@ package object preprocessing {
 
   /**
     * Used for identification (Pattern matching) of pom file
-    * @param is pom file stream
+    * @param content Pom File Content as Byte Array
     */
-  case class PomFile(is: InputStream)
+  case class PomFile(content: Array[Byte])
 
   /**
     * Used for identification (Pattern matching) of metadata file
