@@ -19,26 +19,32 @@ package de.upb.cs.swt.delphi.crawler.preprocessing
 import akka.actor.{Actor, ActorLogging, Props}
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader
 
-import scala.util.Success
+import scala.util.{Failure, Success, Try}
 
 class PomFileReadActor extends Actor with ActorLogging{
 
   val pomReader: MavenXpp3Reader = new MavenXpp3Reader()
 
   override def receive: Receive = {
-    case artifact@MavenArtifact(_, _ ,PomFile(pomStream), _, _) => {
-      //TODO: Errorhandling
-      val pomObject = pomReader.read(pomStream)
+    case artifact@MavenArtifact(identifier, _ ,PomFile(pomStream), _, _) =>
+
+      val pomObject = Try(pomReader.read(pomStream))
       pomStream.close()
 
-      val metadata = MavenArtifactMetadata(pomObject.getName, pomObject.getDescription)
+      pomObject match {
+        case Success(pom) =>
 
-      sender() ! Success(MavenArtifact.withMetadata(artifact, metadata))
-    }
+          val metadata = MavenArtifactMetadata(pom.getName, pom.getDescription)
+          sender() ! Success(MavenArtifact.withMetadata(artifact, metadata))
+
+        case Failure(ex) =>
+          log.error(s"Failed to parse POM file for artifact $identifier",ex )
+          sender() ! Failure(ex)
+      }
+
   }
-
 }
 
 object PomFileReadActor {
-  def props = Props(new PomFileReadActor)
+  def props: Props = Props(new PomFileReadActor)
 }
