@@ -65,6 +65,10 @@ class PomFileReadActorTest extends TestKit(ActorSystem("DownloadActor"))
 
       assert(metadata.name != null && metadata.name.equals("JUnit"))
       assert(metadata.description != null && metadata.description.startsWith("JUnit is a unit testing framework for Java,"))
+
+      assert(metadata.issueManagement.isDefined)
+      assertResult("https://github.com/junit-team/junit/issues")(metadata.issueManagement.get.url)
+      assertResult("github")(metadata.issueManagement.get.system)
     }
   }
 

@@ -22,7 +22,8 @@ import org.joda.time.DateTime
 case class MavenArtifact(identifier : MavenIdentifier, jarFile: JarFile, pomFile: PomFile,
                          publicationDate: Option[DateTime], metadata: Option[MavenArtifactMetadata])
 
-case class MavenArtifactMetadata(name: String, description: String)
+case class MavenArtifactMetadata(name: String, description: String, issueManagement: Option[IssueManagementData])
+case class IssueManagementData(system: String, url: String)
 
 object MavenArtifact{
   def withMetadata(artifact: MavenArtifact, metadata: MavenArtifactMetadata): MavenArtifact = {

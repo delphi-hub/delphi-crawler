@@ -34,7 +34,13 @@ class PomFileReadActor extends Actor with ActorLogging{
       pomObject match {
         case Success(pom) =>
 
-          val metadata = MavenArtifactMetadata(pom.getName, pom.getDescription)
+          val issueManagement = if (pom.getIssueManagement != null) {
+            Some(IssueManagementData(pom.getIssueManagement.getSystem, pom.getIssueManagement.getUrl))
+          } else {
+            None
+          }
+
+          val metadata = MavenArtifactMetadata(pom.getName, pom.getDescription, issueManagement)
           sender() ! Success(MavenArtifact.withMetadata(artifact, metadata))
 
         case Failure(ex) =>
