@@ -44,7 +44,7 @@ object Common {
     assert(jarPath.toFile.exists())
     assert(jarPath.toFile.length() > 0)
   }
-  def checkPom(is: InputStream):Unit={
+  def checkPom(is:InputStream):Unit={
     val pomBytes = inputStreamToBytes(is)
     val tmpDir = System.getProperty("java.io.tmpdir")
     val pomPath = Paths.get(tmpDir).resolve("pom.xml")
