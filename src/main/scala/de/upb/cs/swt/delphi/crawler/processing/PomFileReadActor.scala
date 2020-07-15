@@ -14,13 +14,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package de.upb.cs.swt.delphi.crawler.preprocessing
+package de.upb.cs.swt.delphi.crawler.processing
 
 import akka.actor.{Actor, ActorLogging, Props}
+import de.upb.cs.swt.delphi.crawler.preprocessing.{IssueManagementData, MavenArtifact, MavenArtifactMetadata, PomFile}
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader
 
 import scala.util.{Failure, Success, Try}
 
+/**
+  * An Actor that receives MavenArtifacts and extracts metadata from its POM file. If successful, an
+  * MavenMetadata object is attached to the artifact and the artifact is returned. If failures occurr,
+  * the artifact is returned without metadata.
+  *
+  * @author Johannes Düsing
+  */
 class PomFileReadActor extends Actor with ActorLogging{
 
   val pomReader: MavenXpp3Reader = new MavenXpp3Reader()
@@ -45,7 +53,8 @@ class PomFileReadActor extends Actor with ActorLogging{
 
         case Failure(ex) =>
           log.error(s"Failed to parse POM file for artifact $identifier",ex )
-          sender() ! Failure(ex)
+          // Best effort semantics: If parsing fails, artifact is returned without metadata
+          sender() ! artifact
       }
 
   }

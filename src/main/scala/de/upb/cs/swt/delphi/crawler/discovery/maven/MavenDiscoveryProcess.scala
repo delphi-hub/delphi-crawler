@@ -28,8 +28,8 @@ import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration}
 import de.upb.cs.swt.delphi.crawler.control.Phase
 import de.upb.cs.swt.delphi.crawler.control.Phase.Phase
 import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
-import de.upb.cs.swt.delphi.crawler.preprocessing.{MavenArtifact, MavenArtifactMetadata, MavenDownloadActor, PomFileReadActor}
-import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesResults}
+import de.upb.cs.swt.delphi.crawler.preprocessing.{MavenArtifact, MavenArtifactMetadata, MavenDownloadActor}
+import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesResults, PomFileReadActor}
 import de.upb.cs.swt.delphi.crawler.storage.ArtifactExistsQuery
 import de.upb.cs.swt.delphi.crawler.tools.NotYetImplementedException
 
@@ -89,12 +89,11 @@ class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
         .alsoTo(createSinkFromActorRef[MavenIdentifier](elasticPool))
         .mapAsync(8)(identifier => (downloaderPool ? identifier).mapTo[Try[MavenArtifact]])
         .filter(artifact => artifact.isSuccess)
-        .mapAsync(parallelism = 8)(artifact => (pomReaderPool ? artifact.get).mapTo[Try[MavenArtifact]])
-        .filter(artifact => artifact.isSuccess)
         .map(artifact => artifact.get)
 
     val finalizer =
       preprocessing
+        .mapAsync(8)(artifact => (pomReaderPool ? artifact).mapTo[MavenArtifact])
         .mapAsync(configuration.hermesActorPoolSize)(artifact => (hermesPool ? artifact).mapTo[Try[HermesResults]])
         .filter(results => results.isSuccess)
         .map(results => results.get)
