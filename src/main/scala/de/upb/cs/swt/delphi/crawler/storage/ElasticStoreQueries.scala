@@ -23,6 +23,7 @@ import com.sksamuel.elastic4s.http.update.UpdateResponse
 import com.sksamuel.elastic4s.http.{ElasticClient, Response}
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
+import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
 import de.upb.cs.swt.delphi.crawler.processing.{HermesAnalyzer, HermesResults}
 import org.joda.time.DateTime
 
@@ -46,6 +47,35 @@ trait ElasticStoreQueries {
             "runOn" -> DateTime.now()))
         }.await)
       case None => log.warning(s"Tried to push hermes results for non-existing identifier: ${h.identifier}."); None
+    }
+  }
+
+  def store(m: MavenArtifact)(implicit client: ElasticClient, log: LoggingAdapter): Option[Response[UpdateResponse]] = {
+    elasticId(m.identifier) match {
+      case Some(id) =>
+        log.info(s"Pushing POM file contents for ${m.identifier} under id $id")
+
+        m.metadata match {
+          case Some(metadata) =>
+            Some(client.execute {
+              update(id).in(delphiProjectType).doc(fields = "pom" -> Map(
+                "name" -> metadata.name,
+                "description" -> metadata.description,
+                "issueManagement" -> metadata.issueManagement
+                  .map(management => Map("url" -> management.url, "system" -> management.system)).getOrElse("None"),
+                "developers" -> metadata.developers.mkString(","),
+                "licenses" -> metadata.licenses.map(l => Map("name" -> l.name, "url" -> l.url))
+              ), "published" -> m.publicationDate.getOrElse("Unknown"))
+            }.await)
+          case None =>
+            log.warning(s"Tried to push POM file results to database, but no results are present for identifier: ${m.identifier}")
+            None
+        }
+
+
+      case None =>
+        log.warning(s"Tried to push POM file results for non-existing identifier: ${m.identifier}.")
+        None
     }
   }
 

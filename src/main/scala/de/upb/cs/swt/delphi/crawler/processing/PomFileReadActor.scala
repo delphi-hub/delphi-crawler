@@ -17,9 +17,10 @@
 package de.upb.cs.swt.delphi.crawler.processing
 
 import akka.actor.{Actor, ActorLogging, Props}
-import de.upb.cs.swt.delphi.crawler.preprocessing.{IssueManagementData, MavenArtifact, MavenArtifactMetadata, PomFile}
+import de.upb.cs.swt.delphi.crawler.preprocessing.{ArtifactLicense, IssueManagementData, MavenArtifact, MavenArtifactMetadata, PomFile}
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader
 
+import scala.collection.JavaConverters._
 import scala.util.{Failure, Success, Try}
 
 /**
@@ -48,7 +49,14 @@ class PomFileReadActor extends Actor with ActorLogging{
             None
           }
 
-          val metadata = MavenArtifactMetadata(pom.getName, pom.getDescription, issueManagement)
+
+
+          val metadata = MavenArtifactMetadata(pom.getName,
+            pom.getDescription,
+            pom.getDevelopers.asScala.map(_.getId).toList,
+            pom.getLicenses.asScala.map(l => ArtifactLicense(l.getName, l.getUrl)).toList,
+            issueManagement)
+
           sender() ! Success(MavenArtifact.withMetadata(artifact, metadata))
 
         case Failure(ex) =>

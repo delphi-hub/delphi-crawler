@@ -70,6 +70,11 @@ class PomFileReadActorTest extends TestKit(ActorSystem("DownloadActor"))
       assert(metadata.issueManagement.isDefined)
       assertResult("https://github.com/junit-team/junit/issues")(metadata.issueManagement.get.url)
       assertResult("github")(metadata.issueManagement.get.system)
+
+      assertResult(4)(metadata.developers.size)
+
+      assertResult(1)(metadata.licenses.size)
+      assertResult("Eclipse Public License 1.0")(metadata.licenses.head.name)
     }
   }
 

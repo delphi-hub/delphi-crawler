@@ -94,6 +94,7 @@ class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
     val finalizer =
       preprocessing
         .mapAsync(8)(artifact => (pomReaderPool ? artifact).mapTo[MavenArtifact])
+        .alsoTo(createSinkFromActorRef[MavenArtifact](elasticPool))
         .mapAsync(configuration.hermesActorPoolSize)(artifact => (hermesPool ? artifact).mapTo[Try[HermesResults]])
         .filter(results => results.isSuccess)
         .map(results => results.get)
