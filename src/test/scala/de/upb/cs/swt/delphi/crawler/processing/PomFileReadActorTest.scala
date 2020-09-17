@@ -20,6 +20,7 @@ import akka.actor.ActorSystem
 import akka.pattern.ask
 import akka.testkit.{ImplicitSender, TestKit}
 import akka.util.Timeout
+import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.preprocessing.{MavenArtifact, MavenDownloadActor}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
@@ -42,7 +43,7 @@ class PomFileReadActorTest extends TestKit(ActorSystem("DownloadActor"))
     "create a maven artifact with valid metadata" in {
       val mavenIdentifier = new MavenIdentifier("https://repo1.maven.org/maven2/", "junit", "junit", "4.12")
       val downloadActor = system.actorOf(MavenDownloadActor.props)
-      val readerActor = system.actorOf(PomFileReadActor.props)
+      val readerActor = system.actorOf(PomFileReadActor.props(new Configuration()))
 
       implicit val timeout: Timeout = Timeout(10 seconds)
       implicit val ec: ExecutionContext = system.dispatcher
@@ -75,6 +76,32 @@ class PomFileReadActorTest extends TestKit(ActorSystem("DownloadActor"))
 
       assertResult(1)(metadata.licenses.size)
       assertResult("Eclipse Public License 1.0")(metadata.licenses.head.name)
+    }
+
+    "process dependencies as expected" in {
+      val mavenIdentifier = new MavenIdentifier("https://repo1.maven.org/maven2/", "org.apache.bookkeeper", "bookkeeper-server", "4.9.2")
+      val downloadActor = system.actorOf(MavenDownloadActor.props)
+      val readerActor = system.actorOf(PomFileReadActor.props(new Configuration()))
+
+      implicit val timeout: Timeout = Timeout(10 seconds)
+      implicit val ec: ExecutionContext = system.dispatcher
+
+      val f = downloadActor ? mavenIdentifier
+
+      val msg = Await.result(f, 10 seconds)
+
+      assert(msg.isInstanceOf[Success[MavenArtifact]])
+      val artifact = msg.asInstanceOf[Success[MavenArtifact]].get
+
+      val result = Await.result(readerActor ? artifact, 10 seconds)
+      assert(result.isInstanceOf[Success[MavenArtifact]])
+      val annotatedArtifact = result.asInstanceOf[Success[MavenArtifact]].get
+
+      val dependencies = annotatedArtifact.metadata.get.dependencies
+
+      assertResult(8)(dependencies.size)
+      assertResult(8)(dependencies.count(_.version == "4.9.2"))
+      assert(dependencies.contains(MavenIdentifier("https://repo1.maven.org/maven2/","org.apache.bookkeeper", "circe-checksum", "4.9.2")))
     }
   }
 

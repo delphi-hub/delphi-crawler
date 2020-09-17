@@ -17,7 +17,10 @@
 package de.upb.cs.swt.delphi.crawler.processing
 
 import akka.actor.{Actor, ActorLogging, Props}
+import de.upb.cs.swt.delphi.crawler.Configuration
+import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.preprocessing.{ArtifactLicense, IssueManagementData, MavenArtifact, MavenArtifactMetadata, PomFile}
+import org.apache.maven.model.{Dependency, Model}
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader
 
 import scala.collection.JavaConverters._
@@ -30,7 +33,7 @@ import scala.util.{Failure, Success, Try}
   *
   * @author Johannes Düsing
   */
-class PomFileReadActor extends Actor with ActorLogging{
+class PomFileReadActor(configuration: Configuration) extends Actor with ActorLogging{
 
   val pomReader: MavenXpp3Reader = new MavenXpp3Reader()
 
@@ -49,13 +52,14 @@ class PomFileReadActor extends Actor with ActorLogging{
             None
           }
 
-
+          val dependencies = getDependencies(pom, identifier)
 
           val metadata = MavenArtifactMetadata(pom.getName,
             pom.getDescription,
             pom.getDevelopers.asScala.map(_.getId).toList,
             pom.getLicenses.asScala.map(l => ArtifactLicense(l.getName, l.getUrl)).toList,
-            issueManagement)
+            issueManagement,
+            dependencies)
 
           sender() ! Success(MavenArtifact.withMetadata(artifact, metadata))
 
@@ -66,8 +70,95 @@ class PomFileReadActor extends Actor with ActorLogging{
       }
 
   }
+
+  /**
+    * Retrieve all dependencies specified in the given POM file as MavenIdentifiers. Try to resolve variables as well.
+    * Only returns successfully resolved dependencies, omits failures.
+    * @param pomContent Object holding POM file contents
+    * @param identifier Maven identifier, as sometimes version / groupID is not part of POM file!
+    * @return Set of MavenIdentifiers for each successfully parsed dependency
+    */
+  private def getDependencies(implicit pomContent: Model, identifier: MavenIdentifier): Set[MavenIdentifier] = {
+
+    val dependencies = pomContent
+      .getDependencies
+      .asScala
+      .toSet[Dependency]
+      .map(resolveDependency(_))
+
+    for ( Success(identifier) <- dependencies) yield identifier
+  }
+
+  /**
+    * Process raw dependency specification from POM file, validate text values and try to resolve project variables.
+    * @param dependency Raw dependency specification as given in the POM file
+    * @param pomContent Contents of the POM file
+    * @param identifier Artifact identifier, as sometimes version / groupID is not part of POM file
+    * @return Try object holding the dependency's MavenIdentifier if successful
+    */
+  private def resolveDependency(dependency: Dependency)(implicit pomContent: Model, identifier: MavenIdentifier): Try[MavenIdentifier] = {
+    Try {
+      val groupId = resolveProperty(dependency.getGroupId, "groupID")
+      val artifactId = resolveProperty(dependency.getArtifactId, "artifactID")
+      val version = resolveProperty(dependency.getVersion, "version")
+
+      MavenIdentifier(configuration.mavenRepoBase.toString, groupId, artifactId, version)
+    }
+  }
+
+  /**
+    * Resolve the given property value of an dependency specification and do input validation
+    * @param propValue Value to resolve
+    * @param propName Name of the property (for error logging)
+    * @param pomContent Contents of the POM file
+    * @return Fully resolved string value of the property if successful
+    * @throws NullPointerException If a null values was found for a required property
+    * @throws RuntimeException If actor failed to resolve a variable inside the POM file
+    */
+  private def resolveProperty(propValue: String, propName: String)(implicit pomContent:Model, identifier:MavenIdentifier): String = {
+    if(propValue == null){
+      throw new NullPointerException(s"Property '$propName' must not be null for dependencies")
+    }
+    else if (propValue.startsWith("$")){
+      resolveProjectVariable(propValue)
+        .getOrElse(throw new RuntimeException(s"Failed to resolve variable '$propValue' for property '$propName'"))
+    }
+    else {
+      propValue
+    }
+  }
+
+  private def resolveProjectVariable(variableName: String)(implicit pomContent: Model, identifier: MavenIdentifier): Option[String] = {
+    // Drop Maven Syntax from variable reference (e.g. ${varname})
+    val rawVariableName = variableName.drop(2).dropRight(1)
+
+    // Split dot-separated variable names
+    val variableParts = rawVariableName.split("\\.", 2)
+
+    // Resolve special references to POM attributes
+    if (variableParts(0).equals("project") || variableParts(0).equals("pom")) {
+        val result = variableParts(1) match {
+          // groupID always present in identifier, but not always explicit in POM
+          case "groupId" => Some(identifier.groupId)
+          // artifactID always present in POM
+          case "artifactId" => Some(pomContent.getArtifactId)
+          // Version always present in identifier, but not always explicit in POM
+          case "version" => Some(identifier.version)
+          // Can only extract parent version if explicitly stated
+          case "parent.version" if pomContent.getParent != null && pomContent.getParent.getVersion != null =>
+            Some(pomContent.getParent.getVersion)
+          case _ => None
+        }
+      result
+    }
+    else {
+        // All other formats are interpreted as POM property names
+        Option(pomContent.getProperties.getProperty(rawVariableName))
+    }
+
+  }
 }
 
 object PomFileReadActor {
-  def props: Props = Props(new PomFileReadActor)
+  def props(configuration: Configuration):Props = Props(new PomFileReadActor(configuration))
 }

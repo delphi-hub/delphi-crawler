@@ -26,7 +26,8 @@ case class MavenArtifactMetadata(name: String,
                                  description: String,
                                  developers: List[String],
                                  licenses: List[ArtifactLicense],
-                                 issueManagement: Option[IssueManagementData])
+                                 issueManagement: Option[IssueManagementData],
+                                 dependencies: Set[MavenIdentifier])
 
 case class IssueManagementData(system: String, url: String)
 case class ArtifactLicense(name: String, url:String)

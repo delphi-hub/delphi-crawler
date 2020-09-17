@@ -57,7 +57,7 @@ class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
   private val seen = mutable.HashSet[MavenIdentifier]()
 
   val downloaderPool = system.actorOf(SmallestMailboxPool(8).props(MavenDownloadActor.props))
-  val pomReaderPool = system.actorOf(SmallestMailboxPool(8).props(PomFileReadActor.props))
+  val pomReaderPool = system.actorOf(SmallestMailboxPool(8).props(PomFileReadActor.props(configuration)))
   val hermesPool = system.actorOf(SmallestMailboxPool(configuration.hermesActorPoolSize).props(HermesActor.props()))
 
   override def phase: Phase = Phase.Discovery
