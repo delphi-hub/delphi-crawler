@@ -41,28 +41,31 @@ class PomFileReadActorTest extends TestKit(ActorSystem("DownloadActor"))
     TestKit.shutdownActorSystem(system)
   }
 
+  private def readPomFileFor(identifier: MavenIdentifier): MavenArtifact = {
+    val downloadActor = system.actorOf(MavenDownloadActor.props)
+    val readerActor = system.actorOf(PomFileReadActor.props(new Configuration()))
+
+    implicit val timeout: Timeout = Timeout(10 seconds)
+    implicit val ec: ExecutionContext = system.dispatcher
+
+    val f = downloadActor ? identifier
+
+    val msg = Await.result(f, 10 seconds)
+
+    assert(msg.isInstanceOf[Success[MavenArtifact]])
+    val artifact = msg.asInstanceOf[Success[MavenArtifact]].get
+
+    assert(artifact.metadata.isEmpty)
+    assert(artifact.publicationDate.isDefined && artifact.publicationDate.get != null)
+
+    val result = Await.result(readerActor ? artifact, 10 seconds)
+    assert(result.isInstanceOf[Success[MavenArtifact]])
+    result.asInstanceOf[Success[MavenArtifact]].get
+  }
+
   "The POM file reader actor " must {
     "create a maven artifact with valid metadata" in {
-      val mavenIdentifier = new MavenIdentifier(RepoUrl, "junit", "junit", "4.12")
-      val downloadActor = system.actorOf(MavenDownloadActor.props)
-      val readerActor = system.actorOf(PomFileReadActor.props(new Configuration()))
-
-      implicit val timeout: Timeout = Timeout(10 seconds)
-      implicit val ec: ExecutionContext = system.dispatcher
-
-      val f = downloadActor ? mavenIdentifier
-
-      val msg = Await.result(f, 10 seconds)
-
-      assert(msg.isInstanceOf[Success[MavenArtifact]])
-      val artifact = msg.asInstanceOf[Success[MavenArtifact]].get
-
-      assert(artifact.metadata.isEmpty)
-      assert(artifact.publicationDate.isDefined && artifact.publicationDate.get != null)
-
-      val result = Await.result(readerActor ? artifact, 10 seconds)
-      assert(result.isInstanceOf[Success[MavenArtifact]])
-      val annotatedArtifact = result.asInstanceOf[Success[MavenArtifact]].get
+      val annotatedArtifact = readPomFileFor(MavenIdentifier(RepoUrl, "junit", "junit", "4.12"))
 
       assert(annotatedArtifact.metadata.isDefined)
       val metadata = annotatedArtifact.metadata.get
@@ -81,23 +84,7 @@ class PomFileReadActorTest extends TestKit(ActorSystem("DownloadActor"))
     }
 
     "process dependencies as expected" in {
-      val mavenIdentifier = new MavenIdentifier(RepoUrl, "org.apache.bookkeeper", "bookkeeper-server", "4.9.2")
-      val downloadActor = system.actorOf(MavenDownloadActor.props)
-      val readerActor = system.actorOf(PomFileReadActor.props(new Configuration()))
-
-      implicit val timeout: Timeout = Timeout(10 seconds)
-      implicit val ec: ExecutionContext = system.dispatcher
-
-      val f = downloadActor ? mavenIdentifier
-
-      val msg = Await.result(f, 10 seconds)
-
-      assert(msg.isInstanceOf[Success[MavenArtifact]])
-      val artifact = msg.asInstanceOf[Success[MavenArtifact]].get
-
-      val result = Await.result(readerActor ? artifact, 10 seconds)
-      assert(result.isInstanceOf[Success[MavenArtifact]])
-      val annotatedArtifact = result.asInstanceOf[Success[MavenArtifact]].get
+      val annotatedArtifact = readPomFileFor(MavenIdentifier(RepoUrl, "org.apache.bookkeeper", "bookkeeper-server", "4.9.2"))
 
       val dependencies = annotatedArtifact.metadata.get.dependencies
 
