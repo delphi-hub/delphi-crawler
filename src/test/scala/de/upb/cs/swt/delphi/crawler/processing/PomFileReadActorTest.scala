@@ -35,13 +35,15 @@ class PomFileReadActorTest extends TestKit(ActorSystem("DownloadActor"))
   with Matchers
   with BeforeAndAfterAll {
 
+  final val RepoUrl = "https://repo1.maven.org/maven2/"
+
   override def afterAll {
     TestKit.shutdownActorSystem(system)
   }
 
   "The POM file reader actor " must {
     "create a maven artifact with valid metadata" in {
-      val mavenIdentifier = new MavenIdentifier("https://repo1.maven.org/maven2/", "junit", "junit", "4.12")
+      val mavenIdentifier = new MavenIdentifier(RepoUrl, "junit", "junit", "4.12")
       val downloadActor = system.actorOf(MavenDownloadActor.props)
       val readerActor = system.actorOf(PomFileReadActor.props(new Configuration()))
 
@@ -79,7 +81,7 @@ class PomFileReadActorTest extends TestKit(ActorSystem("DownloadActor"))
     }
 
     "process dependencies as expected" in {
-      val mavenIdentifier = new MavenIdentifier("https://repo1.maven.org/maven2/", "org.apache.bookkeeper", "bookkeeper-server", "4.9.2")
+      val mavenIdentifier = new MavenIdentifier(RepoUrl, "org.apache.bookkeeper", "bookkeeper-server", "4.9.2")
       val downloadActor = system.actorOf(MavenDownloadActor.props)
       val readerActor = system.actorOf(PomFileReadActor.props(new Configuration()))
 
@@ -101,8 +103,8 @@ class PomFileReadActorTest extends TestKit(ActorSystem("DownloadActor"))
 
       assertResult(10)(dependencies.size)
       assertResult(8)(dependencies.count(_.version == "4.9.2"))
-      assert(dependencies.contains(MavenIdentifier("https://repo1.maven.org/maven2/","org.apache.bookkeeper", "circe-checksum", "4.9.2")))
-      assert(dependencies.contains(MavenIdentifier("https://repo1.maven.org/maven2/","org.apache.kerby", "kerby-config", "1.1.1")))
+      assert(dependencies.contains(MavenIdentifier(RepoUrl,"org.apache.bookkeeper", "circe-checksum", "4.9.2")))
+      assert(dependencies.contains(MavenIdentifier(RepoUrl,"org.apache.kerby", "kerby-config", "1.1.1")))
     }
   }
 
