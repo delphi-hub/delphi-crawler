@@ -16,10 +16,11 @@
 
 package de.upb.cs.swt.delphi.crawler.processing
 
-import akka.actor.{Actor, ActorLogging, Props}
+import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.preprocessing.{ArtifactLicense, IssueManagementData, MavenArtifact, MavenArtifactMetadata, PomFile}
+import de.upb.cs.swt.delphi.crawler.tools.HttpDownloader
 import org.apache.maven.model.{Dependency, Model}
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader
 
@@ -36,6 +37,7 @@ import scala.util.{Failure, Success, Try}
 class PomFileReadActor(configuration: Configuration) extends Actor with ActorLogging{
 
   val pomReader: MavenXpp3Reader = new MavenXpp3Reader()
+  implicit val system : ActorSystem = context.system
 
   override def receive: Receive = {
     case artifact@MavenArtifact(identifier, _ ,PomFile(pomStream), _, _) =>
@@ -128,6 +130,7 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
     }
   }
 
+  //noinspection ScalaStyle
   private def resolveProjectVariable(variableName: String)(implicit pomContent: Model, identifier: MavenIdentifier): Option[String] = {
     // Drop Maven Syntax from variable reference (e.g. ${varname})
     val rawVariableName = variableName.drop(2).dropRight(1)
@@ -135,27 +138,62 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
     // Split dot-separated variable names
     val variableParts = rawVariableName.split("\\.", 2)
 
+    var result: Option[String] = None
+
     // Resolve special references to POM attributes
     if (variableParts(0).equals("project") || variableParts(0).equals("pom")) {
-        val result = variableParts(1) match {
-          // groupID always present in identifier, but not always explicit in POM
-          case "groupId" => Some(identifier.groupId)
-          // artifactID always present in POM
-          case "artifactId" => Some(pomContent.getArtifactId)
-          // Version always present in identifier, but not always explicit in POM
-          case "version" => Some(identifier.version)
-          // Can only extract parent version if explicitly stated
-          case "parent.version" if pomContent.getParent != null && pomContent.getParent.getVersion != null =>
-            Some(pomContent.getParent.getVersion)
-          case _ => None
-        }
-      result
+          result = variableParts(1) match {
+            // groupID always present in identifier, but not always explicit in POM
+            case "groupId" => Some(identifier.groupId)
+            // artifactID always present in POM
+            case "artifactId" => Some(pomContent.getArtifactId)
+            // Version always present in identifier, but not always explicit in POM
+            case "version" => Some(identifier.version)
+            // Can only extract parent version if explicitly stated
+            case "parent.version" if pomContent.getParent != null && pomContent.getParent.getVersion != null =>
+              Some(pomContent.getParent.getVersion)
+            case _ => None
+          }
+      }
+      else {
+          // All other formats are interpreted as POM property names
+          result = Option(pomContent.getProperties.getProperty(rawVariableName))
+      }
+
+    // If not resolved -> try to resolve in parent!
+    if (result.isEmpty){
+      recursiveResolveInParent(variableName)
     }
     else {
-        // All other formats are interpreted as POM property names
-        Option(pomContent.getProperties.getProperty(rawVariableName))
+      result
     }
 
+  }
+
+  private def recursiveResolveInParent(variableName: String)(implicit pomContent: Model, identifier: MavenIdentifier):Option[String]={
+    val parentDefinition = pomContent.getParent
+
+    // Only resolve in parent if parent is explicitly defined!
+    if (parentDefinition != null && parentDefinition.getGroupId != null && parentDefinition.getArtifactId != null
+        && parentDefinition.getVersion != null){
+
+      val parentIdentifier = MavenIdentifier(configuration.mavenRepoBase.toString, parentDefinition.getGroupId,
+        parentDefinition.getArtifactId, parentDefinition.getVersion)
+
+      // Download parent POM
+      new HttpDownloader().downloadFromUri(parentIdentifier.toPomLocation.toString) match {
+        case Success(pomStream) =>
+          val parentPom = pomReader.read(pomStream)
+          pomStream.close()
+          // Recursive call to resolve variable in parent POM
+          resolveProjectVariable(variableName)(parentPom, parentIdentifier)
+        case Failure(x) =>
+          throw x
+      }
+    }
+    else {
+      None
+    }
   }
 }
 

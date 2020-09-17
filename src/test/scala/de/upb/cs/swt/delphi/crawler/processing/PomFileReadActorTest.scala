@@ -99,9 +99,10 @@ class PomFileReadActorTest extends TestKit(ActorSystem("DownloadActor"))
 
       val dependencies = annotatedArtifact.metadata.get.dependencies
 
-      assertResult(8)(dependencies.size)
+      assertResult(10)(dependencies.size)
       assertResult(8)(dependencies.count(_.version == "4.9.2"))
       assert(dependencies.contains(MavenIdentifier("https://repo1.maven.org/maven2/","org.apache.bookkeeper", "circe-checksum", "4.9.2")))
+      assert(dependencies.contains(MavenIdentifier("https://repo1.maven.org/maven2/","org.apache.kerby", "kerby-config", "1.1.1")))
     }
   }
 
