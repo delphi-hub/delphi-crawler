@@ -82,6 +82,8 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
     */
   private def getDependencies(implicit pomContent: Model, identifier: MavenIdentifier): Set[MavenIdentifier] = {
 
+    implicit val parentContent: Option[Model] = getParentPomModel(pomContent)
+
     val dependencies = pomContent
       .getDependencies
       .asScala
@@ -98,14 +100,42 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
     * @param identifier Artifact identifier, as sometimes version / groupID is not part of POM file
     * @return Try object holding the dependency's MavenIdentifier if successful
     */
-  private def resolveDependency(dependency: Dependency)(implicit pomContent: Model, identifier: MavenIdentifier): Try[MavenIdentifier] = {
+  private def resolveDependency(dependency: Dependency)
+                               (implicit pomContent: Model, identifier: MavenIdentifier, parentContent: Option[Model])
+  : Try[MavenIdentifier] = {
     Try {
       val groupId = resolveProperty(dependency.getGroupId, "groupID")
       val artifactId = resolveProperty(dependency.getArtifactId, "artifactID")
-      val version = resolveProperty(dependency.getVersion, "version")
+
+      // Often dependency versions are left empty, as they are specified in the parent!
+      val version: String = if(dependency.getVersion == null && parentContent.isDefined){
+        val parentIdent = MavenIdentifier(configuration.mavenRepoBase.toString, pomContent.getParent.getGroupId,
+          pomContent.getParent.getArtifactId, pomContent.getParent.getVersion)
+
+        resolveDependencyVersion(dependency, parentContent.get, parentIdent)
+      } else {
+        resolveProperty(dependency.getVersion, "version")
+      }
 
       MavenIdentifier(configuration.mavenRepoBase.toString, groupId, artifactId, version)
     }
+  }
+
+  private def resolveDependencyVersion(dependency: Dependency, pomContent: Model, identifier: MavenIdentifier): String = {
+    implicit val parentContent: Option[Model] = getParentPomModel(pomContent)
+
+    pomContent
+      .getDependencyManagement.getDependencies
+      .asScala.toSet[Dependency]
+      .filter(d => d.getGroupId.equals(dependency.getGroupId) && d.getArtifactId.equals(dependency.getArtifactId))
+      .map(_.getVersion)
+      .find(_ != null) match {
+      case Some(version) =>
+        resolveProperty(version, "version")(pomContent, identifier, parentContent)
+      case None =>
+        throw new NullPointerException(s"Version was null and could not be resolved in parent")
+    }
+
   }
 
   /**
@@ -117,7 +147,9 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
     * @throws NullPointerException If a null values was found for a required property
     * @throws RuntimeException If actor failed to resolve a variable inside the POM file
     */
-  private def resolveProperty(propValue: String, propName: String)(implicit pomContent:Model, identifier:MavenIdentifier): String = {
+  private def resolveProperty(propValue: String, propName: String)
+                             (implicit pomContent:Model, identifier:MavenIdentifier, parentContent:Option[Model])
+  : String = {
     if(propValue == null){
       throw new NullPointerException(s"Property '$propName' must not be null for dependencies")
     }
@@ -131,7 +163,9 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
   }
 
   //noinspection ScalaStyle
-  private def resolveProjectVariable(variableName: String)(implicit pomContent: Model, identifier: MavenIdentifier): Option[String] = {
+  private def resolveProjectVariable(variableName: String)
+                                    (implicit pomContent: Model, identifier: MavenIdentifier, parentContent:Option[Model])
+  : Option[String] = {
     // Drop Maven Syntax from variable reference (e.g. ${varname})
     val rawVariableName = variableName.drop(2).dropRight(1)
 
@@ -161,7 +195,7 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
       }
 
     // If not resolved -> try to resolve in parent!
-    if (result.isEmpty){
+    if (result.isEmpty && parentContent.isDefined){
       recursiveResolveInParent(variableName)
     }
     else {
@@ -170,25 +204,38 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
 
   }
 
-  private def recursiveResolveInParent(variableName: String)(implicit pomContent: Model, identifier: MavenIdentifier):Option[String]={
-    val parentDefinition = pomContent.getParent
+  private def recursiveResolveInParent(variableName: String)
+                                      (implicit pomContent: Model, identifier: MavenIdentifier, parentContent:Option[Model])
+  :Option[String]={
+    if(parentContent.isDefined){
+      val parentIdentifier = MavenIdentifier(configuration.mavenRepoBase.toString, pomContent.getParent.getGroupId,
+        pomContent.getParent.getArtifactId, pomContent.getParent.getVersion)
 
-    // Only resolve in parent if parent is explicitly defined!
-    if (parentDefinition != null && parentDefinition.getGroupId != null && parentDefinition.getArtifactId != null
-        && parentDefinition.getVersion != null){
+      val parentsParentContent = getParentPomModel(parentContent.get)
 
-      val parentIdentifier = MavenIdentifier(configuration.mavenRepoBase.toString, parentDefinition.getGroupId,
-        parentDefinition.getArtifactId, parentDefinition.getVersion)
+      resolveProjectVariable(variableName)(parentContent.get, parentIdentifier, parentsParentContent)
+    }
+    else {
+      None
+    }
+  }
 
-      // Download parent POM
+  private def getParentPomModel(implicit pomContent: Model): Option[Model] = {
+    val parentDef = pomContent.getParent
+
+    if (parentDef != null && parentDef.getGroupId != null && parentDef.getArtifactId != null && parentDef.getVersion != null){
+      val parentIdentifier = MavenIdentifier(configuration.mavenRepoBase.toString, parentDef.getGroupId,
+        parentDef.getArtifactId, parentDef.getVersion)
+
       new HttpDownloader().downloadFromUri(parentIdentifier.toPomLocation.toString) match {
         case Success(pomStream) =>
           val parentPom = pomReader.read(pomStream)
           pomStream.close()
-          // Recursive call to resolve variable in parent POM
-          resolveProjectVariable(variableName)(parentPom, parentIdentifier)
+
+          Some(parentPom)
         case Failure(x) =>
-          throw x
+          log.error(x, s"Failed to download parent POM")
+          None
       }
     }
     else {
