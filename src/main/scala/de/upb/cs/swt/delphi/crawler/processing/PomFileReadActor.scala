@@ -65,6 +65,8 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
 
           sender() ! Success(MavenArtifact.withMetadata(artifact, metadata))
 
+          log.info(s"Successfully processed POM file for $identifier")
+
         case Failure(ex) =>
           log.error(s"Failed to parse POM file for artifact $identifier",ex )
           // Best effort semantics: If parsing fails, artifact is returned without metadata
@@ -101,6 +103,12 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
     }
   }
 
+  /**
+    * Recursive method building the parent hierarchy of the given POM. Will download and parse all parent POMs and
+    * return them in a list.
+    * @param pomContent POM file to build the parent hierarchy for
+    * @return List of parent POMs. Might be empty, if no parent is specified at all
+    */
   private def buildParentHierarchy(implicit pomContent: Model): List[Model] = {
     getParentPomModel(pomContent) match {
       case Some(parentContent) =>
@@ -109,6 +117,7 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
         List()
     }
   }
+
 
   private def buildParentIdentifier(implicit pomContent:Model): MavenIdentifier = {
     MavenIdentifier(configuration.mavenRepoBase.toString, pomContent.getParent.getGroupId,
@@ -124,17 +133,22 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
     */
   private def getDependencies(implicit pomContent: Model, identifier: MavenIdentifier): Set[MavenIdentifier] = {
 
-    implicit lazy val parentHierarchy: List[Model] = buildParentHierarchy
+    // Always build the parent hierarchy exactly once
+    lazy val parentHierarchy: List[Model] = buildParentHierarchy(pomContent)
 
-    //implicit val parentContent: Option[Model] = getParentPomModel(pomContent)
-
+    // Try to resolve each dependency specified in the POM
     val dependencies = pomContent
       .getDependencies
       .asScala
       .toSet[Dependency]
-      .map(resolveDependency(_))
+      .map(resolveDependency(_, parentHierarchy))
 
-    for ( Success(identifier) <- dependencies) yield identifier
+    if (dependencies.count(_.isFailure) > 0) {
+      log.warning(s"Failed to resolve some dependencies for $identifier")
+    }
+
+    // Only return those dependencies that have been successfully resolved
+    for (Success(identifier) <- dependencies) yield identifier
   }
 
   /**
@@ -144,29 +158,46 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
     * @param identifier Artifact identifier, as sometimes version / groupID is not part of POM file
     * @return Try object holding the dependency's MavenIdentifier if successful
     */
-  private def resolveDependency(dependency: Dependency)
-                               (implicit pomContent: Model, identifier: MavenIdentifier, parentHierarchy: List[Model])
+  private def resolveDependency(dependency: Dependency, parentHierarchy: => List[Model])
+                               (implicit pomContent: Model, identifier: MavenIdentifier)
   : Try[MavenIdentifier] = {
+    lazy val parents = parentHierarchy
+
     Try {
-      val groupId = resolveProperty(dependency.getGroupId, "groupID")
-      val artifactId = resolveProperty(dependency.getArtifactId, "artifactID")
+      // Resolve groupID and artifact id in current POM
+      val groupId = resolveProperty(dependency.getGroupId, "groupID", parents)
+      val artifactId = resolveProperty(dependency.getArtifactId, "artifactID", parents)
 
       // Often dependency versions are left empty, as they are specified in the parent!
-      val version: String = if(dependency.getVersion == null && parentHierarchy.nonEmpty){
-        // Will recurse parent hierarchy to resolve missing version
-        resolveDependencyVersion(dependency, pomContent, identifier)
+      val version: String = if(dependency.getVersion == null && parents.nonEmpty){
+        // If there are parents and version is empty => Try to resolve version in parents
+        resolveDependencyVersion(dependency, pomContent, identifier, parents)
       } else {
-        resolveProperty(dependency.getVersion, "version")
+        // If no parents are present or version is specified => Resolve as regular property
+        resolveProperty(dependency.getVersion, "version", parents)
       }
 
       MavenIdentifier(configuration.mavenRepoBase.toString, groupId, artifactId, version)
     }
   }
 
+  /**
+    * Resolve the version of the given dependency by inspecting the <dependencyManagement> tag of all parent POMs.
+    * @param dependency Dependency to resolve version for, ie. no explicit version is defined for this dependency!
+    * @param pomContent Content of the current POM file to inspect
+    * @param identifier Identifier of the current POM file
+    * @param level Level in the parent hierarchy, needed for recursion
+    * @param parentHierarchy Parent hierarchy object
+    * @return String value of the resolved version
+    * @throws NullPointerException If version could not be resolved in any parent
+    */
   @scala.annotation.tailrec
-  private def resolveDependencyVersion(dependency: Dependency, pomContent: Model, identifier: MavenIdentifier, level: Int = 0)
-                                      (implicit parentHierarchy: List[Model]): String = {
+  private def resolveDependencyVersion(dependency: Dependency, pomContent: Model, identifier: MavenIdentifier,
+                                       parentHierarchy: => List[Model], level: Int = 0): String = {
+    lazy val parents = parentHierarchy
+
     if(pomContent.getDependencyManagement != null){
+      // If there is a dependency management tag: Try to find matching groupID and artifactID
       pomContent
         .getDependencyManagement.getDependencies
         .asScala.toSet[Dependency]
@@ -174,19 +205,19 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
         .map(_.getVersion)
         .find(_ != null) match {
         case Some(version) =>
-          // Found something, try to resolve it if its a variable
-          resolveProperty(version, "version", level)(pomContent, identifier, parentHierarchy)
-        case None if level < parentHierarchy.length =>
-          // Recursive call to find version definition in upper parent definitions
-          resolveDependencyVersion(dependency, parentHierarchy(level), buildParentIdentifier(pomContent), level + 1)
-        case None if level >= parentHierarchy.length =>
+          // Found matching version definition, try to resolve it if its a variable
+          resolveProperty(version, "version", parents, level)(pomContent, identifier)
+        case None if level < parents.length =>
+          // Found no matching version definition, but there is parents left to recurse to
+          resolveDependencyVersion(dependency, parents(level), buildParentIdentifier(pomContent), parents, level + 1)
+        case None if level >= parents.length =>
           // No parent left to recurse, so this really is a dependency without a version
           throw new NullPointerException(s"Version was null and could not be resolved in parent")
       }
     }
     else if(level < parentHierarchy.length) {
-      // Recursive call to find version definition in upper parent definitions
-      resolveDependencyVersion(dependency, parentHierarchy(level), buildParentIdentifier(pomContent), level + 1)
+      // There is no dependency management tag, immediately recurse into parent if parent left
+      resolveDependencyVersion(dependency, parents(level), buildParentIdentifier(pomContent), parents, level + 1)
     }
     else {
       // No parent left to recurse, so this really is a dependency without a version
@@ -205,14 +236,15 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
     * @throws NullPointerException If a null values was found for a required property
     * @throws RuntimeException If actor failed to resolve a variable inside the POM file
     */
-  private def resolveProperty(propValue: String, propName: String, level: Int = 0)
-                             (implicit pomContent:Model, identifier:MavenIdentifier, parentHierarchy: List[Model])
+  private def resolveProperty(propValue: String, propName: String, parentHierarchy: => List[Model], level: Int = 0)
+                             (implicit pomContent:Model, identifier:MavenIdentifier)
   : String = {
+    lazy val parents = parentHierarchy
     if(propValue == null){
       throw new NullPointerException(s"Property '$propName' must not be null for dependencies")
     }
     else if (propValue.startsWith("$")){
-      resolveProjectVariable(propValue, level)
+      resolveProjectVariable(propValue, parents, level)
         .getOrElse(throw new RuntimeException(s"Failed to resolve variable '$propValue' for property '$propName'"))
     }
     else {
@@ -222,9 +254,11 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
 
   //noinspection ScalaStyle
   @scala.annotation.tailrec
-  private def resolveProjectVariable(variableName: String, level: Int)
-                                    (implicit pomContent: Model, identifier: MavenIdentifier, parentHierarchy: List[Model])
+  private def resolveProjectVariable(variableName: String, parentHierarchy: => List[Model], level: Int)
+                                    (implicit pomContent: Model, identifier: MavenIdentifier)
   : Option[String] = {
+    lazy val parents = parentHierarchy
+
     // Drop Maven Syntax from variable reference (e.g. ${varname})
     val rawVariableName = variableName.drop(2).dropRight(1)
 
@@ -254,16 +288,13 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
       }
 
     // If not resolved -> try to resolve in parent!
-    if (result.isEmpty && level <= parentHierarchy.length){
-      resolveProjectVariable(variableName, level + 1)(parentHierarchy(level), buildParentIdentifier(pomContent), parentHierarchy)
+    if (result.isEmpty && level <= parents.length){
+      resolveProjectVariable(variableName, parents, level + 1)(parents(level), buildParentIdentifier(pomContent))
     }
     else {
       result
     }
-
   }
-
-
 }
 
 object PomFileReadActor {

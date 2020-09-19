@@ -37,10 +37,6 @@ class PomFileReadActorTest extends TestKit(ActorSystem("DownloadActor"))
 
   final val RepoUrl = "https://repo1.maven.org/maven2/"
 
-  override def afterAll {
-    TestKit.shutdownActorSystem(system)
-  }
-
   private def readPomFileFor(identifier: MavenIdentifier): MavenArtifact = {
     val downloadActor = system.actorOf(MavenDownloadActor.props)
     val readerActor = system.actorOf(PomFileReadActor.props(new Configuration()))
