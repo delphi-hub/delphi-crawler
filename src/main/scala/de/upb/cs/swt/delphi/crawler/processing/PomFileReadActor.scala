@@ -19,7 +19,7 @@ package de.upb.cs.swt.delphi.crawler.processing
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.preprocessing.{ArtifactLicense, IssueManagementData, MavenArtifact, MavenArtifactMetadata, PomFile}
+import de.upb.cs.swt.delphi.crawler.preprocessing.{ArtifactDependency, ArtifactLicense, IssueManagementData, MavenArtifact, MavenArtifactMetadata, PomFile}
 import de.upb.cs.swt.delphi.crawler.tools.HttpDownloader
 import org.apache.maven.model.{Dependency, Model}
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader
@@ -131,7 +131,7 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
     * @param identifier Maven identifier, as sometimes version / groupID is not part of POM file!
     * @return Set of MavenIdentifiers for each successfully parsed dependency
     */
-  private def getDependencies(implicit pomContent: Model, identifier: MavenIdentifier): Set[MavenIdentifier] = {
+  private def getDependencies(implicit pomContent: Model, identifier: MavenIdentifier): Set[ArtifactDependency] = {
 
     // Always build the parent hierarchy exactly once
     lazy val parentHierarchy: List[Model] = buildParentHierarchy(pomContent)
@@ -160,7 +160,7 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
     */
   private def resolveDependency(dependency: Dependency, parentHierarchy: => List[Model])
                                (implicit pomContent: Model, identifier: MavenIdentifier)
-  : Try[MavenIdentifier] = {
+  : Try[ArtifactDependency] = {
     lazy val parents = parentHierarchy
 
     Try {
@@ -177,7 +177,9 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
         resolveProperty(dependency.getVersion, "version", parents)
       }
 
-      MavenIdentifier(configuration.mavenRepoBase.toString, groupId, artifactId, version)
+      val scope = Option(dependency.getScope)
+
+      ArtifactDependency(MavenIdentifier(configuration.mavenRepoBase.toString, groupId, artifactId, version), scope)
     }
   }
 

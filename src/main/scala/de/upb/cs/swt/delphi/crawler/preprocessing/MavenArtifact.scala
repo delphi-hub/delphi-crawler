@@ -27,10 +27,11 @@ case class MavenArtifactMetadata(name: String,
                                  developers: List[String],
                                  licenses: List[ArtifactLicense],
                                  issueManagement: Option[IssueManagementData],
-                                 dependencies: Set[MavenIdentifier])
+                                 dependencies: Set[ArtifactDependency])
 
 case class IssueManagementData(system: String, url: String)
 case class ArtifactLicense(name: String, url:String)
+case class ArtifactDependency(identifier: MavenIdentifier, scope: Option[String])
 
 object MavenArtifact{
   def withMetadata(artifact: MavenArtifact, metadata: MavenArtifactMetadata): MavenArtifact = {

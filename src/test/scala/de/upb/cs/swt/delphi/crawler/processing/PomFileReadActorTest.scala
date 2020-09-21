@@ -22,7 +22,7 @@ import akka.testkit.{ImplicitSender, TestKit}
 import akka.util.Timeout
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.preprocessing.{MavenArtifact, MavenDownloadActor}
+import de.upb.cs.swt.delphi.crawler.preprocessing.{ArtifactDependency, MavenArtifact, MavenDownloadActor}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 import scala.concurrent.duration._
@@ -35,7 +35,7 @@ class PomFileReadActorTest extends TestKit(ActorSystem("DownloadActor"))
   with Matchers
   with BeforeAndAfterAll {
 
-  final val RepoUrl = "https://repo1.maven.org/maven2/"
+  final val RepoUrl = new Configuration().mavenRepoBase.toString
 
   private def readPomFileFor(identifier: MavenIdentifier): MavenArtifact = {
     val downloadActor = system.actorOf(MavenDownloadActor.props)
@@ -84,11 +84,14 @@ class PomFileReadActorTest extends TestKit(ActorSystem("DownloadActor"))
 
       val dependencies = annotatedArtifact.metadata.get.dependencies
 
-      assertResult(23)(dependencies.size)
-      assertResult(8)(dependencies.count(_.version == "4.9.2"))
-      assert(dependencies.contains(MavenIdentifier(RepoUrl,"org.apache.bookkeeper", "circe-checksum", "4.9.2")))
-      assert(dependencies.contains(MavenIdentifier(RepoUrl,"org.apache.kerby", "kerby-config", "1.1.1")))
-      assert(dependencies.contains(MavenIdentifier(RepoUrl,"commons-codec", "commons-codec", "1.6")))
+      assertResult(25)(dependencies.size)
+      assertResult(9)(dependencies.count(_.identifier.version == "4.9.2"))
+      // Version is local POM reference
+      assert(dependencies.contains(ArtifactDependency(MavenIdentifier(RepoUrl,"org.apache.bookkeeper", "circe-checksum", "4.9.2"), None)))
+      // Version in a variable which is defined in parent POM
+      assert(dependencies.contains(ArtifactDependency(MavenIdentifier(RepoUrl,"org.apache.kerby", "kerby-config", "1.1.1"), Some("test"))))
+      // Version is not defined in local POM, and must be derived from parent POM
+      assert(dependencies.contains(ArtifactDependency(MavenIdentifier(RepoUrl,"commons-codec", "commons-codec", "1.6"), None)))
     }
   }
 
