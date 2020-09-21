@@ -54,6 +54,9 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
             None
           }
 
+          val parent = Option(pom.getParent).map(p => MavenIdentifier(configuration.mavenRepoBase.toString,
+            p.getGroupId, p.getArtifactId, p.getVersion))
+
           val dependencies = getDependencies(pom, identifier)
 
           val metadata = MavenArtifactMetadata(pom.getName,
@@ -61,7 +64,9 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
             pom.getDevelopers.asScala.map(_.getId).toList,
             pom.getLicenses.asScala.map(l => ArtifactLicense(l.getName, l.getUrl)).toList,
             issueManagement,
-            dependencies)
+            dependencies,
+            parent,
+            pom.getPackaging)
 
           sender() ! Success(MavenArtifact.withMetadata(artifact, metadata))
 

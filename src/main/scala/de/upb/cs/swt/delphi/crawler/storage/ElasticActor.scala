@@ -23,6 +23,7 @@ import de.upb.cs.swt.delphi.crawler.Identifier
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
 import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
+import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
 import de.upb.cs.swt.delphi.crawler.processing.HermesResults
 
 /**
@@ -45,6 +46,10 @@ class ElasticActor(client: ElasticClient) extends Actor with ActorLogging with A
     case m : MavenIdentifier => {
       log.info(s"pushing $m")
       store(m)
+      sender() ! Ack
+    }
+    case a : MavenArtifact => {
+      store(a)
       sender() ! Ack
     }
     case g : GitIdentifier => {

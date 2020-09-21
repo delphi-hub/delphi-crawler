@@ -64,7 +64,19 @@ trait ElasticStoreQueries {
                 "issueManagement" -> metadata.issueManagement
                   .map(management => Map("url" -> management.url, "system" -> management.system)).getOrElse("None"),
                 "developers" -> metadata.developers.mkString(","),
-                "licenses" -> metadata.licenses.map(l => Map("name" -> l.name, "url" -> l.url))
+                "licenses" -> metadata.licenses.map(l => Map("name" -> l.name, "url" -> l.url)),
+                "dependencies" -> metadata.dependencies.map(d => Map(
+                  "groupId" -> d.identifier.groupId,
+                  "artifactId" -> d.identifier.artifactId,
+                  "version" -> d.identifier.version,
+                  "scope" -> d.scope.getOrElse("default")
+                )),
+                "parent" -> metadata.parent.map(p => Map(
+                  "groupId" -> p.groupId,
+                  "artifactId" -> p.artifactId,
+                  "version" -> p.version
+                )).getOrElse("None"),
+                "packaging" -> metadata.packaging
               ), "published" -> m.publicationDate.getOrElse("Unknown"))
             }.await)
           case None =>
