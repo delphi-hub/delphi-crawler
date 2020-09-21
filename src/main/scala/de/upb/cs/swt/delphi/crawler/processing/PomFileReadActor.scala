@@ -29,7 +29,7 @@ import scala.util.{Failure, Success, Try}
 
 /**
   * An Actor that receives MavenArtifacts and extracts metadata from its POM file. If successful, an
-  * MavenMetadata object is attached to the artifact and the artifact is returned. If failures occurr,
+  * MavenMetadata object is attached to the artifact and the artifact is returned. If failures occur,
   * the artifact is returned without metadata.
   *
   * @author Johannes Düsing
@@ -47,15 +47,11 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
 
       pomObject match {
         case Success(pom) =>
+          val issueManagement = Option(pom.getIssueManagement)
+            .map(i => IssueManagementData(i.getSystem, i.getUrl))
 
-          val issueManagement = if (pom.getIssueManagement != null) {
-            Some(IssueManagementData(pom.getIssueManagement.getSystem, pom.getIssueManagement.getUrl))
-          } else {
-            None
-          }
-
-          val parent = Option(pom.getParent).map(p => MavenIdentifier(configuration.mavenRepoBase.toString,
-            p.getGroupId, p.getArtifactId, p.getVersion))
+          val parent = Option(pom.getParent)
+            .map(p => MavenIdentifier(configuration.mavenRepoBase.toString, p.getGroupId, p.getArtifactId, p.getVersion))
 
           val dependencies = getDependencies(pom, identifier)
 
@@ -68,7 +64,7 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
             parent,
             pom.getPackaging)
 
-          sender() ! Success(MavenArtifact.withMetadata(artifact, metadata))
+          sender() ! MavenArtifact.withMetadata(artifact, metadata)
 
           log.info(s"Successfully processed POM file for $identifier")
 
