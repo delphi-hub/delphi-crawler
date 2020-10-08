@@ -55,8 +55,8 @@ class PomFileReadActorTest extends TestKit(ActorSystem("DownloadActor"))
     assert(artifact.publicationDate.isDefined && artifact.publicationDate.get != null)
 
     val result = Await.result(readerActor ? artifact, 10 seconds)
-    assert(result.isInstanceOf[Success[MavenArtifact]])
-    result.asInstanceOf[Success[MavenArtifact]].get
+    assert(result.isInstanceOf[MavenArtifact])
+    result.asInstanceOf[MavenArtifact]
   }
 
   "The POM file reader actor " must {
