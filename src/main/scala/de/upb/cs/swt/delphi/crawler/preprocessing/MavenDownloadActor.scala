@@ -26,52 +26,63 @@ import org.joda.time.format.DateTimeFormat
 import scala.util.{Failure, Success, Try}
 
 class MavenDownloadActor extends Actor with ActorLogging {
+
   override def receive: Receive = {
-    case m : MavenIdentifier => {
+    case m : MavenIdentifier =>
       implicit val system : ActorSystem = context.system
 
       val downloader = new HttpDownloader
 
-      val jarStream = downloader.downloadFromUri(m.toJarLocation.toString())
-      val pomResponse = downloader.downloadFromUriWithHeaders(m.toPomLocation.toString())
+      val pomResponse = downloader.downloadFromUriWithHeaders(m.toPomLocation.toString)
 
-      jarStream match {
-        case Success(jar) => {
-          pomResponse match {
-            case Success((pomStream, pomHeaders)) => {
-              log.info(s"Downloaded $m")
+      pomResponse match {
+        case Success((pomStream, pomHeaders)) =>
+          log.info(s"Downloaded $m")
 
-              // Extract and parse publication date from header
-              val datePattern = DateTimeFormat.forPattern("E, dd MMM yyyy HH:mm:ss zzz").withLocale(Locale.ENGLISH)
-              val pomPublicationDate = pomHeaders.find( _.lowercaseName().equals("last-modified") )
-                .map( header => Try(datePattern.parseDateTime(header.value())) ) match {
-                case Some(Success(date)) => Some(date)
-                case Some(Failure(x)) => x.printStackTrace(); None
-                case _ => None
-              }
-
-              sender() ! Success(MavenArtifact(m, JarFile(jar, m.toJarLocation.toURL), PomFile(pomStream),
-                pomPublicationDate, None))
-            }
-            case Failure(e) => {
-              // TODO: push error to actor
-              log.warning(s"Failed pom download for $m")
-              sender() ! Failure(e)
-            }
+          // Extract and parse publication date from header
+          val datePattern = DateTimeFormat.forPattern("E, dd MMM yyyy HH:mm:ss zzz").withLocale(Locale.ENGLISH)
+          val pomPublicationDate = pomHeaders.find( _.lowercaseName().equals("last-modified") )
+            .map( header => Try(datePattern.parseDateTime(header.value())) ) match {
+            case Some(Success(date)) => Some(date)
+            case Some(Failure(x)) =>
+              log.warning(s"Failed to extract publication date for $m: ${x.getMessage}")
+              None
+            case _ => None
           }
-        }
-        case Failure(e) => {
-          // TODO: push error to actor
-          log.warning(s"Failed jar download for $m")
-          sender() ! Failure(e)
-        }
+
+          downloader.downloadFromUri(m.toJarLocation.toString) match {
+            case Success(jar) =>
+              sender() ! MavenDownloadActorResponse(
+                m,
+                Some(MavenArtifact(m, Some(JarFile(jar, m.toJarLocation.toURL)), PomFile(pomStream), pomPublicationDate, None)),
+              dateParsingFailed = pomPublicationDate.isEmpty)
+            case Failure(ex) =>
+              log.warning(s"Failed to download jar file for $m")
+              sender() ! MavenDownloadActorResponse(
+                m,
+                Some(MavenArtifact(m, None, PomFile(pomStream), pomPublicationDate, None)),
+                jarDownloadFailed = true,
+                dateParsingFailed = pomPublicationDate.isEmpty,
+                errorMessage = ex.getMessage
+              )
+          }
+
+        case Failure(ex) =>
+          log.error(s"Failed to download pom file for $m with message: ${ex.getMessage}")
+          sender() ! MavenDownloadActorResponse(m, None, pomDownloadFailed = true, errorMessage = ex.getMessage)
       }
 
-
-    }
   }
 }
+
+case class MavenDownloadActorResponse(identifier: MavenIdentifier,
+                                      artifact: Option[MavenArtifact],
+                                      pomDownloadFailed: Boolean = false,
+                                      jarDownloadFailed: Boolean = false,
+                                      dateParsingFailed: Boolean = false,
+                                      errorMessage: String = "")
+
 object MavenDownloadActor {
-  def props = Props(new MavenDownloadActor)
+  def props: Props = Props(new MavenDownloadActor)
 }
 

@@ -56,7 +56,7 @@ class MavenDownloadActorTest extends TestKit(ActorSystem("DownloadActor"))
 
       assert(msg.isInstanceOf[Success[MavenArtifact]])
       val artifact = msg.asInstanceOf[Success[MavenArtifact]].get
-      checkJar(artifact.jarFile.is)
+      checkJar(artifact.jarFile.get.is)
       checkPom(artifact.pomFile.is)
 
       assert(artifact.metadata.isEmpty)

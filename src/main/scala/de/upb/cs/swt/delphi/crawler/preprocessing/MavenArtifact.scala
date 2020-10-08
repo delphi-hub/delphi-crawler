@@ -19,7 +19,7 @@ package de.upb.cs.swt.delphi.crawler.preprocessing
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import org.joda.time.DateTime
 
-case class MavenArtifact(identifier : MavenIdentifier, jarFile: JarFile, pomFile: PomFile,
+case class MavenArtifact(identifier : MavenIdentifier, jarFile: Option[JarFile], pomFile: PomFile,
                          publicationDate: Option[DateTime], metadata: Option[MavenArtifactMetadata])
 
 case class MavenArtifactMetadata(name: String,
