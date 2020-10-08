@@ -44,7 +44,7 @@ class MavenDownloadActorTest extends TestKit(ActorSystem("DownloadActor"))
 
   "The maven download actor" must {
     "create a maven artifact with a jar and pom file" in {
-      val mavenIdentifier = new MavenIdentifier("http://central.maven.org/maven2/", "junit", "junit", "4.12")
+      val mavenIdentifier = new MavenIdentifier("https://repo1.maven.org/maven2/", "junit", "junit", "4.12")
       val downloadActor = system.actorOf(MavenDownloadActor.props)
 
       implicit val timeout = Timeout(10 seconds)
@@ -59,7 +59,8 @@ class MavenDownloadActorTest extends TestKit(ActorSystem("DownloadActor"))
       checkJar(artifact.jarFile.is)
       checkPom(artifact.pomFile.is)
 
-
+      assert(artifact.metadata.isEmpty)
+      assert(artifact.publicationDate.isDefined && artifact.publicationDate.get != null)
     }
   }
 }
