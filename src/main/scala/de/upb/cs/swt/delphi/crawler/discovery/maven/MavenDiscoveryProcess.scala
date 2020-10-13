@@ -29,7 +29,7 @@ import de.upb.cs.swt.delphi.crawler.control.Phase
 import de.upb.cs.swt.delphi.crawler.control.Phase.Phase
 import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
 import de.upb.cs.swt.delphi.crawler.preprocessing.{MavenArtifact, MavenArtifactMetadata, MavenDownloadActor, MavenDownloadActorResponse}
-import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesResults, PomFileReadActor, ProcessingFailureStorageActor}
+import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesResults, PomFileReadActor, PomFileReadActorResponse, ProcessingFailureStorageActor}
 import de.upb.cs.swt.delphi.crawler.storage.ArtifactExistsQuery
 import de.upb.cs.swt.delphi.crawler.tools.NotYetImplementedException
 
@@ -95,11 +95,15 @@ class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
     // TODO: Adapt to new response model
     val finalizer =
       preprocessing
-        .mapAsync(8)(artifact => (pomReaderPool ? artifact.artifact.get).mapTo[MavenArtifact])
-        .alsoTo(createSinkFromActorRef[MavenArtifact](elasticPool))
-        .mapAsync(configuration.hermesActorPoolSize)(artifact => (hermesPool ? artifact).mapTo[Try[HermesResults]])
-        .filter(results => results.isSuccess)
-        .map(results => results.get)
+        .mapAsync(8)(downloadResponse=> (pomReaderPool ? downloadResponse).mapTo[PomFileReadActorResponse])
+        .alsoTo(createSinkFromActorRef[PomFileReadActorResponse](errorHandlerPool))
+        .alsoTo(createSinkFromActorRef[PomFileReadActorResponse](elasticPool))
+        .filter(response => !response.jarDownloadFailed)
+        .map(_.artifact)
+        .mapAsync(configuration.hermesActorPoolSize)(artifact => (hermesPool ? artifact).mapTo[(MavenIdentifier, Try[HermesResults])])
+        .alsoTo(createSinkFromActorRef[(MavenIdentifier, Try[HermesResults])](errorHandlerPool))
+        .filter(result => result._2.isSuccess)
+        .map(result => result._2.get)
         .alsoTo(createSinkFromActorRef[HermesResults](elasticPool))
         .to(Sink.ignore)
         .run()

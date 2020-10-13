@@ -19,7 +19,7 @@ package de.upb.cs.swt.delphi.crawler.processing
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.preprocessing.{ArtifactDependency, ArtifactLicense, IssueManagementData, MavenArtifact, MavenArtifactMetadata, PomFile}
+import de.upb.cs.swt.delphi.crawler.preprocessing.{ArtifactDependency, ArtifactLicense, IssueManagementData, MavenArtifact, MavenArtifactMetadata, MavenDownloadActorResponse, PomFile}
 import de.upb.cs.swt.delphi.crawler.tools.HttpDownloader
 import org.apache.maven.model.{Dependency, Model}
 import org.apache.maven.model.io.xpp3.MavenXpp3Reader
@@ -40,7 +40,10 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
   implicit val system : ActorSystem = context.system
 
   override def receive: Receive = {
-    case artifact@MavenArtifact(identifier, _ ,PomFile(pomStream), _, _) =>
+
+    case MavenDownloadActorResponse(identifier, Some(artifact),_,jarDownloadFailed,_,_) =>
+
+      val pomStream = artifact.pomFile.is
 
       val pomObject = Try(pomReader.read(pomStream))
       pomStream.close()
@@ -64,14 +67,15 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
             parent,
             pom.getPackaging)
 
-          sender() ! MavenArtifact.withMetadata(artifact, metadata)
+          sender() ! PomFileReadActorResponse(MavenArtifact.withMetadata(artifact, metadata),
+            jarDownloadFailed, pomParsingFailed = false, "")
 
           log.info(s"Successfully processed POM file for $identifier")
 
         case Failure(ex) =>
-          log.error(s"Failed to parse POM file for artifact $identifier",ex )
+          log.error(s"Failed to parse POM file for artifact $identifier",ex)
           // Best effort semantics: If parsing fails, artifact is returned without metadata
-          sender() ! artifact
+          sender() ! PomFileReadActorResponse(artifact, jarDownloadFailed, pomParsingFailed = true, ex.getMessage)
       }
 
   }
@@ -299,6 +303,11 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
     }
   }
 }
+
+case class PomFileReadActorResponse(artifact: MavenArtifact,
+                                    jarDownloadFailed: Boolean,
+                                    pomParsingFailed: Boolean,
+                                    errorMessage: String)
 
 object PomFileReadActor {
   def props(configuration: Configuration):Props = Props(new PomFileReadActor(configuration))

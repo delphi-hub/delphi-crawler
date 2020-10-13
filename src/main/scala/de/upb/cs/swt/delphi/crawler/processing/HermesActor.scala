@@ -35,7 +35,7 @@ class HermesActor() extends Actor with ActorLogging with OPALFunctionality with 
         computeHermesResult(m, reifyProject(m))
       }
 
-      sender() ! hermesResult
+      sender() ! (m.identifier, hermesResult)
     }
   }
 }
