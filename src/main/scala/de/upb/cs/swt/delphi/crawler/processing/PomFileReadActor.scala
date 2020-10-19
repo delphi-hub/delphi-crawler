@@ -41,7 +41,7 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
 
   override def receive: Receive = {
 
-    case MavenDownloadActorResponse(identifier, Some(artifact),_,jarDownloadFailed,_,_) =>
+    case MavenDownloadActorResponse(identifier, Some(artifact),_,jarDownloadFailed,_,errorMessage) =>
 
       val pomStream = artifact.pomFile.is
 
@@ -68,7 +68,7 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
             pom.getPackaging)
 
           sender() ! PomFileReadActorResponse(MavenArtifact.withMetadata(artifact, metadata),
-            jarDownloadFailed, pomParsingFailed = false, "")
+            jarDownloadFailed, pomParsingFailed = false, if(jarDownloadFailed) errorMessage else "")
 
           log.info(s"Successfully processed POM file for $identifier")
 

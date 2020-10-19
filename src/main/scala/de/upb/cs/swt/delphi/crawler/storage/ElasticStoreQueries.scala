@@ -22,7 +22,7 @@ import com.sksamuel.elastic4s.http.index.IndexResponse
 import com.sksamuel.elastic4s.http.update.UpdateResponse
 import com.sksamuel.elastic4s.http.{ElasticClient, Response}
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
-import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
+import de.upb.cs.swt.delphi.crawler.discovery.maven.{MavenIdentifier, MavenProcessingError}
 import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
 import de.upb.cs.swt.delphi.crawler.processing.{HermesAnalyzer, HermesResults}
 import org.joda.time.DateTime
@@ -89,6 +89,18 @@ trait ElasticStoreQueries {
         log.warning(s"Tried to push POM file results for non-existing identifier: ${m.identifier}.")
         None
     }
+  }
+
+  def store(error: MavenProcessingError)(implicit client: ElasticClient, log: LoggingAdapter): Response[IndexResponse]= {
+    log.info(s"Pushing new error to elastic regarding identifier ${error.identifier}")
+    client.execute {
+      indexInto(delphiProcessingErrorType).id(error.occurredAt.getMillis.toString).fields(
+        "identifier" -> error.identifier.toUniqueString,
+        "occurred" -> error.occurredAt,
+        "message" -> error.message,
+        "type" -> error.errorType.toString
+      )
+    }.await
   }
 
   def store(g: GitIdentifier)(implicit client: ElasticClient, log: LoggingAdapter): Response[IndexResponse] = {

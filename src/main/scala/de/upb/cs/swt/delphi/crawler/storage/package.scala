@@ -21,5 +21,7 @@ import com.sksamuel.elastic4s.IndexAndType
 package object storage {
   val delphi = "delphi"
   val project = "project"
+  val processingError = "error"
   val delphiProjectType: IndexAndType = IndexAndType(delphi,project)
+  val delphiProcessingErrorType: IndexAndType = IndexAndType(delphi, processingError)
 }

@@ -35,7 +35,7 @@ class HermesActor() extends Actor with ActorLogging with OPALFunctionality with 
         computeHermesResult(m, reifyProject(m))
       }
 
-      sender() ! (m.identifier, hermesResult)
+      sender() ! HermesActorResponse(m.identifier, hermesResult)
     }
   }
 }
@@ -47,3 +47,5 @@ object HermesActor {
 }
 
 case class HermesResults(identifier: MavenIdentifier, featureMap: Map[String, Int])
+
+case class HermesActorResponse(identifier: MavenIdentifier, result: Try[HermesResults])
