@@ -95,7 +95,10 @@ trait ElasticStoreQueries {
     log.info(s"Pushing new error to elastic regarding identifier ${error.identifier}")
     client.execute {
       indexInto(delphiProcessingErrorType).id(error.occurredAt.getMillis.toString).fields(
-        "identifier" -> error.identifier.toUniqueString,
+        "identifier" -> Map(
+          "groupId" -> error.identifier.groupId,
+          "artifactId" -> error.identifier.artifactId,
+          "version" -> error.identifier.version),
         "occurred" -> error.occurredAt,
         "message" -> error.message,
         "type" -> error.errorType.toString
@@ -115,7 +118,7 @@ trait ElasticStoreQueries {
   }
 
   def store(m: MavenIdentifier)(implicit client: ElasticClient, log: LoggingAdapter): Response[IndexResponse] = {
-    log.info("Pushing new maven identifier to elastic: [{}]", m)
+    log.info("Pushing new maven identifier to elastic: [{}]", m.toUniqueString)
     client.execute {
       indexInto(delphiProjectType).id(m.toUniqueString)
         .fields("name" -> m.toUniqueString,

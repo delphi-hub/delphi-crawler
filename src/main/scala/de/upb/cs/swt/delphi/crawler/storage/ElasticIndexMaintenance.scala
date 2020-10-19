@@ -65,7 +65,7 @@ trait ElasticIndexMaintenance extends AppLogging {
           keywordField("type"),
           keywordField("message"),
           dateField("occurred"),
-          keywordField("identifier")
+          objectField("identifier") fields identifierFields
         ))
     }.await
 
