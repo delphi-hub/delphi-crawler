@@ -22,8 +22,9 @@ import com.sksamuel.elastic4s.http.ElasticClient
 import de.upb.cs.swt.delphi.crawler.Identifier
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
 import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
-import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.processing.HermesResults
+import de.upb.cs.swt.delphi.crawler.discovery.maven.{MavenIdentifier, MavenProcessingError}
+import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
+import de.upb.cs.swt.delphi.crawler.processing.{HermesResults, PomFileReadActorResponse}
 
 /**
   * An actor reacting to item which should be pushed to elasticsearch
@@ -47,12 +48,20 @@ class ElasticActor(client: ElasticClient) extends Actor with ActorLogging with A
       store(m)
       sender() ! Ack
     }
+    case PomFileReadActorResponse(artifact,_,false,_) => {
+      store(artifact)
+      sender() ! Ack
+    }
     case g : GitIdentifier => {
       store(g)
       sender() ! Ack
     }
     case h : HermesResults => {
       store(h)
+      sender() ! Ack
+    }
+    case e : MavenProcessingError => {
+      store(e)
       sender() ! Ack
     }
     case x => log.warning("Received unknown message: [{}] ", x)

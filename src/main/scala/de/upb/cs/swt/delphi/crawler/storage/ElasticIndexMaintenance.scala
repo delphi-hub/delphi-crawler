@@ -59,11 +59,14 @@ trait ElasticIndexMaintenance extends AppLogging {
             objectField("identifier") fields identifierFields,
             textField("methods") analyzer KeywordAnalyzer
           ),
-
           objectField("features") fields featureList
-        )
-        )
-
+        ),
+        mapping(processingError) as (
+          keywordField("type"),
+          keywordField("message"),
+          dateField("occurred"),
+          objectField("identifier") fields identifierFields
+        ))
     }.await
 
     //Increases maximum number of nested fields

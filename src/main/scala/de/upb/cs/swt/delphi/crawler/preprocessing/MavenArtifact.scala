@@ -17,5 +17,26 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
+import org.joda.time.DateTime
 
-case class MavenArtifact(identifier : MavenIdentifier, jarFile: JarFile, pomFile: PomFile)
+case class MavenArtifact(identifier : MavenIdentifier, jarFile: Option[JarFile], pomFile: PomFile,
+                         publicationDate: Option[DateTime], metadata: Option[MavenArtifactMetadata])
+
+case class MavenArtifactMetadata(name: String,
+                                 description: String,
+                                 developers: List[String],
+                                 licenses: List[ArtifactLicense],
+                                 issueManagement: Option[IssueManagementData],
+                                 dependencies: Set[ArtifactDependency],
+                                 parent:Option[MavenIdentifier],
+                                 packaging: String)
+
+case class IssueManagementData(system: String, url: String)
+case class ArtifactLicense(name: String, url:String)
+case class ArtifactDependency(identifier: MavenIdentifier, scope: Option[String])
+
+object MavenArtifact{
+  def withMetadata(artifact: MavenArtifact, metadata: MavenArtifactMetadata): MavenArtifact = {
+    MavenArtifact(artifact.identifier, artifact.jarFile, artifact.pomFile, artifact.publicationDate, Some(metadata))
+  }
+}

@@ -28,8 +28,8 @@ trait OPALFunctionality {
 
   def reifyProject(m: MavenArtifact): Project[URL] = {
     val project = new ClassStreamReader {}.createProject(m.identifier.toJarLocation.toURL,
-      new JarInputStream(m.jarFile.is))
-    Try(m.jarFile.is.close())
+      new JarInputStream(m.jarFile.get.is))
+    Try(m.jarFile.get.is.close())
     project
   }
 }
