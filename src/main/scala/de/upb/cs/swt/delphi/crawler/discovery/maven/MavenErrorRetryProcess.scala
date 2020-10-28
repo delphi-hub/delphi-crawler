@@ -40,7 +40,7 @@ class MavenErrorRetryProcess(configuration: Configuration, elasticPool: ActorRef
         .hits
         .hits
         .map{ hit =>
-          val identifierMap = hit.fields("identifier").asInstanceOf[Map[String, String]]
+          val identifierMap = hit.sourceAsMap("identifier").asInstanceOf[Map[String, String]]
           MavenIdentifier(configuration.mavenRepoBase.toString,
             identifierMap("groupId"),
             identifierMap("artifactId"),
