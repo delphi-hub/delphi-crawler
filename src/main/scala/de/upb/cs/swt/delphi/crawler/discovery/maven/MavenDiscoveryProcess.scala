@@ -16,32 +16,17 @@
 
 package de.upb.cs.swt.delphi.crawler.discovery.maven
 
+import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem}
-import akka.event.LoggingAdapter
-import akka.pattern.ask
-import akka.routing.SmallestMailboxPool
-import akka.stream.{ActorMaterializer, ThrottleMode}
-import akka.stream.scaladsl.{Keep, Sink}
-import akka.util.Timeout
-import com.sksamuel.elastic4s.http.ElasticClient
-import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration}
-import de.upb.cs.swt.delphi.crawler.control.Phase
-import de.upb.cs.swt.delphi.crawler.control.Phase.Phase
-import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
-import de.upb.cs.swt.delphi.crawler.preprocessing.{MavenArtifact, MavenArtifactMetadata, MavenDownloadActor, MavenDownloadActorResponse}
-import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesActorResponse, HermesResults, PomFileReadActor, PomFileReadActorResponse, ProcessingFailureStorageActor}
-import de.upb.cs.swt.delphi.crawler.storage.ArtifactExistsQuery
-import de.upb.cs.swt.delphi.crawler.tools.NotYetImplementedException
-
+import akka.stream.scaladsl.Source
+import de.upb.cs.swt.delphi.crawler.Configuration
 import scala.collection.mutable
-import scala.concurrent.duration._
-import scala.util.{Failure, Success, Try}
 
 
 /**
   * A process to discover new artifacts from a configured maven repository.
   *
-  * @author Ben Hermann
+  * @author Ben Hermann, Johannes Düsing
   * @param configuration The configuration to be used
   * @param elasticPool   A pool of elasticsearch actors
   * @param system        The currently used actor system (for logging)
@@ -49,74 +34,21 @@ import scala.util.{Failure, Success, Try}
   */
 class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
                            (implicit system: ActorSystem)
-  extends de.upb.cs.swt.delphi.crawler.control.Process[Long]
-    with IndexProcessing
-    with ArtifactExistsQuery
-    with AppLogging {
+  extends MavenArtifactProcess(configuration, elasticPool)(system) {
 
   private val seen = mutable.HashSet[MavenIdentifier]()
 
-  val downloaderPool = system.actorOf(SmallestMailboxPool(8).props(MavenDownloadActor.props))
-  val pomReaderPool = system.actorOf(SmallestMailboxPool(8).props(PomFileReadActor.props(configuration)))
-  val errorHandlerPool = system.actorOf(SmallestMailboxPool(8).props(ProcessingFailureStorageActor.props(elasticPool)))
-  val hermesPool = system.actorOf(SmallestMailboxPool(configuration.hermesActorPoolSize).props(HermesActor.props()))
-
-  override def phase: Phase = Phase.Discovery
-
-  override def start: Try[Long] = {
-    implicit val materializer = ActorMaterializer()
-    implicit val logger: LoggingAdapter = log
-    implicit val client = ElasticClient(configuration.elasticsearchClientUri)
-
-    var filteredSource =
-      createSource(configuration.mavenRepoBase)
-        .filter(m => {
-          val before = seen.contains(m)
-          if (!before) seen.add(m)
-          !before
-        }) // local seen cache to compensate for lags
-        .filter(m => !exists(m)) // ask elastic
-        .throttle(configuration.throttle.element, configuration.throttle.per, configuration.throttle.maxBurst, configuration.throttle.mode)
+  override val identifierSource: Source[MavenIdentifier, NotUsed] =
+    createSource(configuration.mavenRepoBase)
+      .filter(m => {
+        val before = seen.contains(m)
+        if (!before) seen.add(m)
+        !before
+      }) // local seen cache to compensate for lags
+      .filter(m => !exists(m)) // ask elastic
+      .throttle(configuration.throttle.element, configuration.throttle.per, configuration.throttle.maxBurst, configuration.throttle.mode)
 
 
-    if (configuration.limit > 0) {
-      filteredSource = filteredSource.take(configuration.limit)
-    }
-
-    implicit val timeout = Timeout(5 minutes)
-
-    val preprocessing =
-      filteredSource
-        .alsoTo(createSinkFromActorRef[MavenIdentifier](elasticPool))
-        .mapAsync(8)(identifier => (downloaderPool ? identifier).mapTo[MavenDownloadActorResponse])
-        .alsoTo(createSinkFromActorRef[MavenDownloadActorResponse](errorHandlerPool))
-        .filter(!_.pomDownloadFailed)
-
-    val finalizer =
-      preprocessing
-        .mapAsync(8)(downloadResponse => (pomReaderPool ? downloadResponse).mapTo[PomFileReadActorResponse])
-        .alsoTo(createSinkFromActorRef[PomFileReadActorResponse](errorHandlerPool))
-        .alsoTo(createSinkFromActorRef[PomFileReadActorResponse](elasticPool))
-        .filter(response => !response.jarDownloadFailed)
-        .map(_.artifact)
-        .mapAsync(configuration.hermesActorPoolSize)(artifact => (hermesPool ? artifact).mapTo[HermesActorResponse])
-        .alsoTo(createSinkFromActorRef[HermesActorResponse](errorHandlerPool))
-        .filter(_.result.isSuccess)
-        .map(_.result.get)
-        .alsoTo(createSinkFromActorRef[HermesResults](elasticPool))
-        .to(Sink.ignore)
-        .run()
-
-    Success(0L)
-  }
-
-  private def createSinkFromActorRef[T](actorRef: ActorRef) = {
-    Sink.actorRefWithAck[T](actorRef, StreamInitialized, Ack, StreamCompleted, StreamFailure)
-  }
-
-  override def stop: Try[Long] = {
-    Failure(new NotYetImplementedException)
-  }
 }
 
 
