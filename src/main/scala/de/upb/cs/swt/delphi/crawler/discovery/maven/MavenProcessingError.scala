@@ -46,4 +46,30 @@ object MavenProcessingError {
 
   def createHermesProcessingError(identifier: MavenIdentifier, message: String): MavenProcessingError =
     createError(identifier, MavenErrorType.HermesProcessingFailed, message)
+
+  def toElasticSource(error: MavenProcessingError): Map[String, AnyRef] = {
+    Map(
+      "identifier" -> Map(
+        "repo" -> error.identifier.repository,
+        "groupId" -> error.identifier.groupId,
+        "artifactId" -> error.identifier.artifactId,
+        "version" -> error.identifier.version
+      ),
+      "occurred" -> error.occurredAt,
+      "message" -> error.message,
+      "type" -> error.errorType.toString
+    )
+  }
+
+  def fromElasticSource(map: Map[String, AnyRef]): MavenProcessingError = {
+    val identifier = identifierFromMap(map("identifier").asInstanceOf[Map[String, String]])
+    val errorType = MavenErrorType.withName(map("type").asInstanceOf[String])
+    val errorMessage = map("message").asInstanceOf[String]
+    val errorTime = DateTime.parse(map("occurred").asInstanceOf[String])
+
+    MavenProcessingError(identifier, errorTime, errorType, errorMessage)
+  }
+
+  private def identifierFromMap(map: Map[String, String]): MavenIdentifier =
+    MavenIdentifier(map("repo"), map("groupId"), map("artifactId"), map("version"))
 }

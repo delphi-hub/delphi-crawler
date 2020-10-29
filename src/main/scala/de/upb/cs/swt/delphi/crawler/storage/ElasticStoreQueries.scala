@@ -95,13 +95,7 @@ trait ElasticStoreQueries {
     log.info(s"Pushing new error to elastic regarding identifier ${error.identifier}")
     client.execute {
       indexInto(delphiProcessingErrorType).id(error.occurredAt.getMillis.toString).fields(
-        "identifier" -> Map(
-          "groupId" -> error.identifier.groupId,
-          "artifactId" -> error.identifier.artifactId,
-          "version" -> error.identifier.version),
-        "occurred" -> error.occurredAt,
-        "message" -> error.message,
-        "type" -> error.errorType.toString
+        MavenProcessingError.toElasticSource(error)
       )
     }.await
   }

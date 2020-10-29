@@ -19,38 +19,83 @@ package de.upb.cs.swt.delphi.crawler.discovery.maven
 import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem}
 import akka.stream.scaladsl.Source
+import akka.pattern.ask
 import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.{RequestFailure, RequestSuccess}
 import com.sksamuel.elastic4s.http.search.SearchResponse
 import de.upb.cs.swt.delphi.crawler.Configuration
+import de.upb.cs.swt.delphi.crawler.preprocessing.MavenDownloadActorResponse
+import de.upb.cs.swt.delphi.crawler.processing.{HermesActorResponse, PomFileReadActorResponse}
 import de.upb.cs.swt.delphi.crawler.storage.{delphi, processingError}
+import de.upb.cs.swt.delphi.crawler.tools.NotYetImplementedException
 
-class MavenErrorRetryProcess(configuration: Configuration, elasticPool: ActorRef)(implicit system: ActorSystem)
-  extends MavenArtifactProcess(configuration, elasticPool)(system) {
+import scala.concurrent.ExecutionContext
+import scala.util.{Failure, Success, Try}
 
-  override protected val identifierSource: Source[MavenIdentifier, NotUsed] = esClient.execute {
+class MavenErrorRetryProcess(configuration: Configuration, elasticPool: ActorRef)
+                            (implicit system: ActorSystem) extends MavenProcess(configuration, elasticPool)(system) {
+
+  private implicit val ec: ExecutionContext = system.dispatcher
+
+  private val identifierSource: Source[MavenProcessingError, NotUsed] = esClient.execute {
     search(delphi).types(processingError)
   }.await match {
     case f: RequestFailure =>
       logger.error(s"Failed to retrieve errors from elastic ${f.error.reason}")
-      Source.empty[MavenIdentifier]
+      Source.empty[MavenProcessingError]
     case response: RequestSuccess[SearchResponse] =>
       Source.fromIterator(() => response
         .result
         .hits
         .hits
         .map{ hit =>
-          val identifierMap = hit.sourceAsMap("identifier").asInstanceOf[Map[String, String]]
-          MavenIdentifier(configuration.mavenRepoBase.toString,
-            identifierMap("groupId"),
-            identifierMap("artifactId"),
-            identifierMap("version")
-          )
+          MavenProcessingError.fromElasticSource(hit.sourceAsMap)
         }.iterator
       )
     case r@_ =>
       logger.error(s"Got unknown elastic response while querying errors: $r")
-      Source.empty[MavenIdentifier]
+      Source.empty[MavenProcessingError]
   }
+
+  override def start: Try[Long] = {
+    identifierSource
+        .mapAsync(8) { error =>
+          (downloaderPool ? error.identifier).mapTo[MavenDownloadActorResponse].map(r => (error, r))
+        }
+        .filter { case (error, response) =>
+          // Only report failed POM download if it was not original error cause
+          if(error.errorType != MavenErrorType.PomDownloadFailed && response.pomDownloadFailed) {
+            // New error while retrying the old one => report to storage actor?
+            ???
+          }
+
+          // Only retain an artifact if POM download succeeded and JAR download did not fail again. Not that a failed JAR
+          // download may be okay, if the original error was a failed POM download and the packaging is not set to JAR.
+          !response.pomDownloadFailed && (error.errorType != MavenErrorType.JarDownloadFailed || !response.jarDownloadFailed)
+        }
+        .mapAsync(8){ case (error, response) =>
+          (pomReaderPool ? response).mapTo[PomFileReadActorResponse].map(r => (error, r))
+        }
+        .filter {case (error, response) =>
+
+          // Only retain artifact if jar download did not fail, otherwise Hermes cannot be invoked.
+          !response.jarDownloadFailed
+        }
+        .mapAsync(configuration.hermesActorPoolSize){ case (error, response) =>
+          (hermesPool ? response.artifact).mapTo[HermesActorResponse].map(r => (error, r))
+        }
+        //TODO: Report new errors, store results after each step!
+
+
+
+
+    Success(0L)
+  }
+
+  override def stop: Try[Long] = {
+    Failure(new NotYetImplementedException)
+  }
+
+
 
 }
