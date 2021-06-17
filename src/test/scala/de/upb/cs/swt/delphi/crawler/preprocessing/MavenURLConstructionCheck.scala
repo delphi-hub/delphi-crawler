@@ -21,17 +21,17 @@ import org.scalatest.{FlatSpec, Matchers}
 
 class MavenURLConstructionCheck extends FlatSpec with Matchers {
   "Regular identifiers" should "create regular urls" in {
-    val reg1 = MavenIdentifier("http://repo1.maven.org/maven2/", "log4j", "log4j", "1.2.9")
-    val reg2 = MavenIdentifier("http://repo1.maven.org/maven2/", "de.tu-darmstadt.stg", "sootkeeper", "1.0")
-    val reg3 = MavenIdentifier("http://repo1.maven.org/maven2/", "de.tuebingen.uni.sfs.germanet", "germanet-api", "13.1.0")
+    val reg1 = MavenIdentifier("https://repo1.maven.org/maven2/", "log4j", "log4j", "1.2.9")
+    val reg2 = MavenIdentifier("https://repo1.maven.org/maven2/", "de.tu-darmstadt.stg", "sootkeeper", "1.0")
+    val reg3 = MavenIdentifier("https://repo1.maven.org/maven2/", "de.tuebingen.uni.sfs.germanet", "germanet-api", "13.1.0")
 
-    reg1.toJarLocation.toString shouldBe "http://repo1.maven.org/maven2/log4j/log4j/1.2.9/log4j-1.2.9.jar"
-    reg2.toJarLocation.toString shouldBe "http://repo1.maven.org/maven2/de/tu-darmstadt/stg/sootkeeper/1.0/sootkeeper-1.0.jar"
-    reg3.toJarLocation.toString shouldBe "http://repo1.maven.org/maven2/de/tuebingen/uni/sfs/germanet/germanet-api/13.1.0/germanet-api-13.1.0.jar"
+    reg1.toJarLocation.toString shouldBe "https://repo1.maven.org/maven2/log4j/log4j/1.2.9/log4j-1.2.9.jar"
+    reg2.toJarLocation.toString shouldBe "https://repo1.maven.org/maven2/de/tu-darmstadt/stg/sootkeeper/1.0/sootkeeper-1.0.jar"
+    reg3.toJarLocation.toString shouldBe "https://repo1.maven.org/maven2/de/tuebingen/uni/sfs/germanet/germanet-api/13.1.0/germanet-api-13.1.0.jar"
 
-    reg1.toPomLocation.toString shouldBe "http://repo1.maven.org/maven2/log4j/log4j/1.2.9/log4j-1.2.9.pom"
-    reg2.toPomLocation.toString shouldBe "http://repo1.maven.org/maven2/de/tu-darmstadt/stg/sootkeeper/1.0/sootkeeper-1.0.pom"
-    reg3.toPomLocation.toString shouldBe "http://repo1.maven.org/maven2/de/tuebingen/uni/sfs/germanet/germanet-api/13.1.0/germanet-api-13.1.0.pom"
+    reg1.toPomLocation.toString shouldBe "https://repo1.maven.org/maven2/log4j/log4j/1.2.9/log4j-1.2.9.pom"
+    reg2.toPomLocation.toString shouldBe "https://repo1.maven.org/maven2/de/tu-darmstadt/stg/sootkeeper/1.0/sootkeeper-1.0.pom"
+    reg3.toPomLocation.toString shouldBe "https://repo1.maven.org/maven2/de/tuebingen/uni/sfs/germanet/germanet-api/13.1.0/germanet-api-13.1.0.pom"
   }
 
 

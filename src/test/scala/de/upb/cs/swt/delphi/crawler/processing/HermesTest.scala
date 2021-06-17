@@ -48,7 +48,7 @@ class HermesTest extends FlatSpec with Matchers with BeforeAndAfterAll {
 
   "HermesVersion" should "be a valid version string" in {
     HermesAnalyzer.HermesVersion shouldBe a [String]
-    HermesAnalyzer.HermesVersion shouldBe "1.0.0"
+    HermesAnalyzer.HermesVersion shouldBe "4.0.0"
   }
 
 
