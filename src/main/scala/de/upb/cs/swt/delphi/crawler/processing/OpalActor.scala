@@ -3,15 +3,13 @@ package de.upb.cs.swt.delphi.crawler.processing
 import java.io.{File, InputStream}
 import java.net.URL
 import java.util.jar.JarInputStream
-
 import akka.actor.{Actor, ActorLogging, Props}
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.preprocessing.JarFile
 import de.upb.cs.swt.delphi.crawler.tools.ClassStreamReader
-import org.opalj.AnalysisModes
-import org.opalj.br.analyses.AnalysisModeConfigFactory
-import org.opalj.ai.analyses.cg.{CallGraphFactory, ExtVTACallGraphAlgorithmConfiguration}
-import org.opalj.ai.analyses.cg.CallGraphFactory.defaultEntryPointsForLibraries
+
+import org.opalj.br.VirtualDeclaredMethod
+import org.opalj.tac.cg.{CallGraph, XTACallGraphKey}
 
 import scala.util.Try
 
@@ -39,12 +37,13 @@ class OpalActor(configuration: Configuration) extends Actor with ActorLogging{
   private def findCalls(is: InputStream, url: URL) = {
     val p = new ClassStreamReader {}.createProject(url, new JarInputStream(is))
     is.close()
-    val cpaP = AnalysisModeConfigFactory.resetAnalysisMode(p, AnalysisModes.OPA)
-    val entryPoints = () => defaultEntryPointsForLibraries(cpaP)
-    val config = new ExtVTACallGraphAlgorithmConfiguration(cpaP)
-    val callGraph = CallGraphFactory.create(cpaP, entryPoints, config)
 
-    callGraph.unresolvedMethodCalls.toSet
+    val cg: CallGraph = p.get(XTACallGraphKey)
+    cg.reachableMethods().filter{ method =>
+      (method.isInstanceOf[VirtualDeclaredMethod] ||
+        !p.allProjectClassFiles.exists(_.thisType.equals(method.declaringClassType))) &&
+        cg.calleesOf(method).isEmpty
+    }.toSet
   }
 }
 

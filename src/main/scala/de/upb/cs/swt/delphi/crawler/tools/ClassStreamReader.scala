@@ -69,7 +69,7 @@ trait ClassStreamReader {
         futures ::= Future[List[(ClassFile, String)]] {
           val cfs = reader.ClassFile(new DataInputStream(new ByteArrayInputStream(entryBytes)))
           cfs map { cf => (cf, entryName) }
-        }(org.opalj.concurrent.OPALExecutionContext)
+        }(org.opalj.concurrent.OPALUnboundedExecutionContext)
       }
       je = in.getNextJarEntry()
     }
