@@ -85,16 +85,11 @@ libraryDependencies ++= Seq(
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
-val opalVersion = "1.0.0"
+val opalVersion = "4.0.0"
 libraryDependencies ++= Seq(
-  "de.opal-project" % "common_2.12" % opalVersion
-    exclude("com.fasterxml.jackson.datatype", "jackson-datatype-jsr310"),
-  //https://snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONDATATYPE-173759
-  "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % "2.9.8",
-
-  "de.opal-project" % "opal-developer-tools_2.12" % opalVersion
-    exclude("com.google.protobuf", "protobuf-java"),
-  "com.google.protobuf" % "protobuf-java" % "3.4.0"
+  "de.opal-project" % "common_2.12" % opalVersion,
+  "de.opal-project" % "framework_2.12" % opalVersion,
+  "de.opal-project" % "hermes_2.12" % opalVersion
 )
 
 val mavenVersion = "3.5.2"

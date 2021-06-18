@@ -6,7 +6,8 @@ import com.sksamuel.elastic4s.http.ElasticDsl._
 import com.sksamuel.elastic4s.http.search.MultiSearchResponse
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.processing.CallGraphStream.{MappedEdge, unresMCtoStr}
-import org.opalj.ai.analyses.cg.UnresolvedMethodCall
+
+import org.opalj.br.DeclaredMethod
 
 import scala.util.Try
 
@@ -22,7 +23,7 @@ class ElasticEdgeSearchActor(client: ElasticClient) extends Actor with ActorLogg
   val maxBatchSize = 100
 
   override def receive: Receive = {
-    case (mx: Set[UnresolvedMethodCall], ix: Set[MavenIdentifier]) => {
+    case (mx: Set[DeclaredMethod], ix: Set[MavenIdentifier]) => {
       Try(segmentFun(searchMethods, maxBatchSize)(mx, ix.toList)) match {
         case util.Success((unmapped, mapped)) =>
           sender() ! (unmapped, ix, mapped)
@@ -36,8 +37,8 @@ class ElasticEdgeSearchActor(client: ElasticClient) extends Actor with ActorLogg
 
   //Splits the set of methods in "batch" sized chucks before passing them to the search function, to prevent
   //  the construction of a search too large to be run
-  private def segmentFun(fx: (Set[UnresolvedMethodCall], List[MavenIdentifier]) => (Set[UnresolvedMethodCall], Set[MappedEdge]), batch: Int)
-                     (mx: Set[UnresolvedMethodCall], ix: List[MavenIdentifier]): (Set[UnresolvedMethodCall], Set[MappedEdge]) = {
+  private def segmentFun(fx: (Set[DeclaredMethod], List[MavenIdentifier]) => (Set[DeclaredMethod], Set[MappedEdge]), batch: Int)
+                     (mx: Set[DeclaredMethod], ix: List[MavenIdentifier]): (Set[DeclaredMethod], Set[MappedEdge]) = {
     if (mx.size > batch) {
       mx.splitAt(batch) match { case (currSeg, restSeg) =>
         val segmentResults = fx (currSeg, ix)
@@ -51,7 +52,7 @@ class ElasticEdgeSearchActor(client: ElasticClient) extends Actor with ActorLogg
     }
   }
 
-  def genSearchDef(call: UnresolvedMethodCall, id: MavenIdentifier) = {
+  def genSearchDef(call: DeclaredMethod, id: MavenIdentifier) = {
     search("delphi").query {
       nestedQuery("calls",
         boolQuery().must(
@@ -62,7 +63,7 @@ class ElasticEdgeSearchActor(client: ElasticClient) extends Actor with ActorLogg
     }
   }
 
-  def searchEsDb(calls: List[UnresolvedMethodCall], id: MavenIdentifier): UnresolvedMethodCall => Boolean = {
+  def searchEsDb(calls: List[DeclaredMethod], id: MavenIdentifier): DeclaredMethod => Boolean = {
     val resp: Response[MultiSearchResponse] = client.execute{
       multi(
         for(call <- calls) yield genSearchDef(call, id)
@@ -76,8 +77,8 @@ class ElasticEdgeSearchActor(client: ElasticClient) extends Actor with ActorLogg
     hits.contains
   }
 
-  private def searchMethods(calls: Set[UnresolvedMethodCall], ids: List[MavenIdentifier]): (Set[UnresolvedMethodCall], Set[MappedEdge]) = {
-    if (calls.isEmpty) (Set[UnresolvedMethodCall](), Set[MappedEdge]())
+  private def searchMethods(calls: Set[DeclaredMethod], ids: List[MavenIdentifier]): (Set[DeclaredMethod], Set[MappedEdge]) = {
+    if (calls.isEmpty) (Set[DeclaredMethod](), Set[MappedEdge]())
 
     ids.headOption match {
       case None => (calls, Set[MappedEdge]())

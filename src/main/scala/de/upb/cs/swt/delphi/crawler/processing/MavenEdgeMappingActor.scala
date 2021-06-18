@@ -2,14 +2,13 @@ package de.upb.cs.swt.delphi.crawler.processing
 
 import java.io.FileNotFoundException
 import java.util.jar.JarInputStream
-
 import akka.actor.{Actor, ActorLogging, Props}
 import de.upb.cs.swt.delphi.crawler.Configuration
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.preprocessing.MavenDownloader
 import de.upb.cs.swt.delphi.crawler.processing.CallGraphStream.{MappedEdge, unresMCtoStr}
 import de.upb.cs.swt.delphi.crawler.tools.ClassStreamReader
-import org.opalj.ai.analyses.cg.UnresolvedMethodCall
+import org.opalj.br.DeclaredMethod
 
 import scala.util.Try
 
@@ -22,7 +21,7 @@ import scala.util.Try
 
 class MavenEdgeMappingActor(configuration: Configuration) extends Actor with ActorLogging{
   override def receive: Receive = {
-    case (mx: Set[UnresolvedMethodCall], ix: Set[MavenIdentifier]) => {
+    case (mx: Set[DeclaredMethod], ix: Set[MavenIdentifier]) => {
       Try(matchEdges(mx, ix)) match {
         case util.Success(ex) => sender() ! ex
         case util.Failure(e) => {
@@ -33,7 +32,7 @@ class MavenEdgeMappingActor(configuration: Configuration) extends Actor with Act
     }
   }
 
-  def edgeSearch(edgeSet: Set[UnresolvedMethodCall], mavenList: List[MavenIdentifier]): Set[MappedEdge] = {
+  def edgeSearch(edgeSet: Set[DeclaredMethod], mavenList: List[MavenIdentifier]): Set[MappedEdge] = {
     if (edgeSet.isEmpty) {
       Set[MappedEdge]()
     } else {
@@ -46,7 +45,8 @@ class MavenEdgeMappingActor(configuration: Configuration) extends Actor with Act
         case Some(id) => {
           Try {
             val library = loadProject(id)
-            edgeSet.partition(m => library.resolveMethodReference(m.calleeClass, m.calleeName, m.calleeDescriptor).isDefined) match {
+            edgeSet.partition(m => library.resolveMethodReference(m.declaringClassType,
+              m.name, m.descriptor).isDefined) match {
               case (hits, misses) => {
                 val mappedEdges = hits.map(m => MappedEdge(id, unresMCtoStr(m)))
                 mappedEdges ++ edgeSearch(misses, mavenList.tail)
@@ -78,7 +78,7 @@ class MavenEdgeMappingActor(configuration: Configuration) extends Actor with Act
     project
   }
 
-  private def matchEdges(edgeSet: Set[UnresolvedMethodCall], mavenSet: Set[MavenIdentifier]): Set[MappedEdge] = {
+  private def matchEdges(edgeSet: Set[DeclaredMethod], mavenSet: Set[MavenIdentifier]): Set[MappedEdge] = {
     edgeSearch(edgeSet, mavenSet.toList)
   }
 }
