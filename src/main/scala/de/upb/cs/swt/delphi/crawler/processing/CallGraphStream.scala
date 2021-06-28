@@ -2,7 +2,6 @@ package de.upb.cs.swt.delphi.crawler.processing
 
 
 import java.io.FileNotFoundException
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import akka.pattern.ask
 import akka.stream._
@@ -16,7 +15,7 @@ import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.preprocessing.{JarFile, MavenDownloader, PomFile}
 import de.upb.cs.swt.delphi.crawler.processing.CallGraphStream.MappedEdge
 import de.upb.cs.swt.delphi.crawler.storage.ElasticCallGraphActor
-import org.opalj.ai.analyses.cg.UnresolvedMethodCall
+import org.opalj.br.DeclaredMethod
 
 import scala.concurrent.duration._
 import scala.concurrent.{ExecutionContext, Future}
@@ -60,23 +59,23 @@ class CallGraphStream(configuration: Configuration) extends Actor with ActorLogg
   val esPushActor: ActorRef = context.actorOf(ElasticCallGraphActor.props(esClient))
 
   val fileGenFlow: Flow[MavenIdentifier, (PomFile, JarFile, MavenIdentifier), NotUsed] = Flow.fromFunction(fetchFiles)
-  val edgeSetFlow: Flow[(Set[MavenIdentifier], JarFile, MavenIdentifier), (Set[UnresolvedMethodCall], Set[MavenIdentifier], MavenIdentifier), NotUsed] =
+  val edgeSetFlow: Flow[(Set[MavenIdentifier], JarFile, MavenIdentifier), (Set[DeclaredMethod], Set[MavenIdentifier], MavenIdentifier), NotUsed] =
     Flow[(Set[MavenIdentifier], JarFile, MavenIdentifier)].mapAsync(parallelism){ case (ix: Set[MavenIdentifier], jf: JarFile, i: MavenIdentifier) =>
-      (opalActor ? jf).mapTo[Set[UnresolvedMethodCall]].map(cx => (cx, ix, i))}
+      (opalActor ? jf).mapTo[Set[DeclaredMethod]].map(cx => (cx, ix, i))}
   val dependencyConverter: Flow[(PomFile, JarFile, MavenIdentifier), (Set[MavenIdentifier], JarFile, MavenIdentifier), NotUsed] =
     Flow[(PomFile, JarFile, MavenIdentifier)].mapAsync(parallelism){ case (pf, jf, id) => (mavenDependencyActor ? pf).mapTo[Set[MavenIdentifier]].map((_, jf, id))}
 
-  val esEdgeMatcher: Flow[(Set[UnresolvedMethodCall], Set[MavenIdentifier], MavenIdentifier), (Set[UnresolvedMethodCall], Set[MavenIdentifier], Set[MappedEdge], MavenIdentifier), NotUsed] =
-    Flow[(Set[UnresolvedMethodCall], Set[MavenIdentifier], MavenIdentifier)].mapAsync(parallelism){ case (mxIn, ixIn, i) => (esEdgeSearchActor ? (mxIn, ixIn))
-      .mapTo[(Set[UnresolvedMethodCall], Set[MavenIdentifier], Set[MappedEdge])].map{case (mxOut, ixOut, ex) => (mxOut, ixOut, ex, i)}}
-  val mavenEdgeMatcher: Flow[(Set[UnresolvedMethodCall], Set[MavenIdentifier], Set[MappedEdge], MavenIdentifier), (Set[MappedEdge], MavenIdentifier), NotUsed] =
-    Flow[(Set[UnresolvedMethodCall], Set[MavenIdentifier], Set[MappedEdge], MavenIdentifier)].mapAsync(parallelism){ case (mx, ix, ex, i)
+  val esEdgeMatcher: Flow[(Set[DeclaredMethod], Set[MavenIdentifier], MavenIdentifier), (Set[DeclaredMethod], Set[MavenIdentifier], Set[MappedEdge], MavenIdentifier), NotUsed] =
+    Flow[(Set[DeclaredMethod], Set[MavenIdentifier], MavenIdentifier)].mapAsync(parallelism){ case (mxIn, ixIn, i) => (esEdgeSearchActor ? (mxIn, ixIn))
+      .mapTo[(Set[DeclaredMethod], Set[MavenIdentifier], Set[MappedEdge])].map{case (mxOut, ixOut, ex) => (mxOut, ixOut, ex, i)}}
+  val mavenEdgeMatcher: Flow[(Set[DeclaredMethod], Set[MavenIdentifier], Set[MappedEdge], MavenIdentifier), (Set[MappedEdge], MavenIdentifier), NotUsed] =
+    Flow[(Set[DeclaredMethod], Set[MavenIdentifier], Set[MappedEdge], MavenIdentifier)].mapAsync(parallelism){ case (mx, ix, ex, i)
       => (mavenEdgeMapActor ? (mx, ix)).mapTo[Set[MappedEdge]].map(me => (me ++ ex, i))}
 
   val esPusherSink: Sink[(Set[MappedEdge], MavenIdentifier), Future[Done]] =
     Sink.foreach{ case (ex, i) => (esPushActor ! (i, ex))}
 
-  val edgeGeneratingGraph: Flow[MavenIdentifier, (Set[UnresolvedMethodCall], Set[MavenIdentifier], MavenIdentifier), NotUsed] =
+  val edgeGeneratingGraph: Flow[MavenIdentifier, (Set[DeclaredMethod], Set[MavenIdentifier], MavenIdentifier), NotUsed] =
     Flow.fromGraph(GraphDSL.create() { implicit b =>
 
       val fileGen = b.add(fileGenFlow)
@@ -89,7 +88,7 @@ class CallGraphStream(configuration: Configuration) extends Actor with ActorLogg
     FlowShape(fileGen.in, edgeGen.out)
   })
 
-  val edgeMatchingGraph: Flow[(Set[UnresolvedMethodCall], Set[MavenIdentifier], MavenIdentifier), (Set[MappedEdge], MavenIdentifier), NotUsed] =
+  val edgeMatchingGraph: Flow[(Set[DeclaredMethod], Set[MavenIdentifier], MavenIdentifier), (Set[MappedEdge], MavenIdentifier), NotUsed] =
     Flow.fromGraph(GraphDSL.create() { implicit b =>
       val esMatcher = b.add(esEdgeMatcher)
       val mvMatcher = b.add(mavenEdgeMatcher)
@@ -130,5 +129,5 @@ object CallGraphStream{
   def props(configuration: Configuration) = Props(new CallGraphStream(configuration))
 
   case class MappedEdge(library: MavenIdentifier, method: String)   //I'm not sure if this is the best place to put these
-  def unresMCtoStr(m: UnresolvedMethodCall): String = m.calleeClass.toJava + ": " + m.calleeDescriptor.toJava(m.calleeName)
+  def unresMCtoStr(m: DeclaredMethod): String = m.declaringClassType.toJava + ": " + m.toJava
 }

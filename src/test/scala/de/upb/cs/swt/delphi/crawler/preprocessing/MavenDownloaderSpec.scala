@@ -21,13 +21,13 @@ import de.upb.cs.swt.delphi.crawler.preprocessing.Common._
 
 class MavenDownloaderSpec extends FlatSpec with Matchers {
   "MavenDownloader" should "save jar file" in {
-    val mavenIdentifier = new MavenIdentifier("http://central.maven.org/maven2/", "junit", "junit", "4.12")
+    val mavenIdentifier = new MavenIdentifier("https://repo1.maven.org/maven2/", "junit", "junit", "4.12")
     val downloader = new MavenDownloader(mavenIdentifier)
     val jarStream = downloader.downloadJar()
     checkJar(jarStream.is)
   }
   "MavenDownloader" should "save pom file" in {
-    val mavenIdentifier = new MavenIdentifier("http://central.maven.org/maven2/", "junit", "junit", "4.12")
+    val mavenIdentifier = new MavenIdentifier("https://repo1.maven.org/maven2/", "junit", "junit", "4.12")
     val downloader = new MavenDownloader(mavenIdentifier)
     val pomStream = downloader.downloadPom()
     checkPom(pomStream.is)

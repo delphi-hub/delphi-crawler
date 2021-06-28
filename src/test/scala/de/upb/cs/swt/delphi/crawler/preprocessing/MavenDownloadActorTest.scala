@@ -38,13 +38,11 @@ class MavenDownloadActorTest extends TestKit(ActorSystem("DownloadActor"))
   with WordSpecLike
   with Matchers
   with BeforeAndAfterAll {
-  override def afterAll {
-    TestKit.shutdownActorSystem(system)
-  }
+
 
   "The maven download actor" must {
     "create a maven artifact with a jar and pom file" in {
-      val mavenIdentifier = new MavenIdentifier("http://central.maven.org/maven2/", "junit", "junit", "4.12")
+      val mavenIdentifier = new MavenIdentifier("https://repo1.maven.org/maven2/", "junit", "junit", "4.12")
       val downloadActor = system.actorOf(MavenDownloadActor.props)
 
       implicit val timeout = Timeout(10 seconds)
