@@ -87,9 +87,10 @@ resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repos
 
 val opalVersion = "4.0.0"
 libraryDependencies ++= Seq(
-  "de.opal-project" % "common_2.12" % opalVersion,
-  "de.opal-project" % "framework_2.12" % opalVersion,
-  "de.opal-project" % "hermes_2.12" % opalVersion
+  "de.opal-project" % "common_2.12" % opalVersion exclude("com.fasterxml.jackson.core", "jackson-databind"),
+
+  "de.opal-project" % "framework_2.12" % opalVersion exclude("com.fasterxml.jackson.core", "jackson-databind"),
+  "de.opal-project" % "hermes_2.12" % opalVersion exclude("com.fasterxml.jackson.core", "jackson-databind")
 )
 
 val mavenVersion = "3.5.2"
