@@ -18,7 +18,7 @@ name := "delphi-crawler"
 
 version := "1.0.0-SNAPSHOT"
 
-scalaVersion := "2.12.4"
+scalaVersion := "2.12.15"
 
 lazy val crawler = (project in file(".")).
   enablePlugins(JavaAppPackaging).
@@ -50,10 +50,10 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
   "com.typesafe.akka" %% "akka-http-spray-json" % "10.2.6",
-  "com.typesafe.akka" %% "akka-http" % "10.1.5"
+  "com.typesafe.akka" %% "akka-http" % "10.2.6"
 )
 
-libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.5.3"
+libraryDependencies += "org.json4s" %% "json4s-jackson" % "4.0.3"
 
 libraryDependencies += "com.pauldijou" %% "jwt-core" % "1.0.0"
 
@@ -92,13 +92,4 @@ libraryDependencies ++= Seq(
 libraryDependencies += "org.apache.maven.indexer" % "indexer-reader" % "6.0.0"
 libraryDependencies += "org.apache.maven.indexer" % "indexer-core" % "6.0.0"
 
-libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
-
 libraryDependencies += "de.upb.cs.swt.delphi" %% "delphi-core" % "0.9.2"
-
-// Pinning secure versions of insecure transitive libraryDependencies
-// Please update when updating dependencies above (including Play plugin)
-libraryDependencies ++= Seq(
-    "com.google.guava" % "guava" % "25.1-jre",
-  "com.fasterxml.jackson.core" % "jackson-databind" % "2.9.9"
-)
