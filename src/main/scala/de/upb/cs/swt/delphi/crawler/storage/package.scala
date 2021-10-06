@@ -22,4 +22,8 @@ package object storage {
   val delphi = "delphi"
   val project = "project"
   val delphiProjectType: IndexAndType = IndexAndType(delphi,project)
+
+  val identifierIndexName = "identifiers"
+  val metricIndexName = "metrics"
+  val metadataIndexName = "metadata"
 }

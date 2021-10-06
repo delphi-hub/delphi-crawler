@@ -17,7 +17,7 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
-import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
+import de.upb.cs.swt.delphi.core.model.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.tools.HttpDownloader
 
 import scala.util.{Failure, Success}

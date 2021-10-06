@@ -17,9 +17,10 @@
 package de.upb.cs.swt.delphi.crawler.storage
 
 import akka.actor.ActorSystem
-import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.http.ElasticClient
+import com.sksamuel.elastic4s.ElasticApi.nodeInfo
+import com.sksamuel.elastic4s.ElasticDsl.NodeInfoHandler
 import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceRegistry
+import de.upb.cs.swt.delphi.crawler.tools.ElasticHelper
 import de.upb.cs.swt.delphi.crawler.{Configuration, PreflightCheck}
 
 import scala.concurrent.duration._
@@ -41,7 +42,7 @@ object ElasticReachablePreflightCheck extends PreflightCheck {
     */
   override def check(configuration: Configuration)(implicit system: ActorSystem): Try[Configuration] = {
     implicit val ec : ExecutionContext = system.dispatcher
-    lazy val client = ElasticClient(configuration.elasticsearchClientUri)
+    lazy val client = ElasticHelper.buildElasticClient(configuration)
 
     val f = (client.execute {
       nodeInfo()

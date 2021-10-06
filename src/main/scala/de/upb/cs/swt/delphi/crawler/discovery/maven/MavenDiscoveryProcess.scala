@@ -23,7 +23,7 @@ import akka.routing.SmallestMailboxPool
 import akka.stream.{ActorMaterializer, ThrottleMode}
 import akka.stream.scaladsl.{Keep, Sink}
 import akka.util.Timeout
-import com.sksamuel.elastic4s.http.ElasticClient
+import de.upb.cs.swt.delphi.core.model.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration}
 import de.upb.cs.swt.delphi.crawler.control.Phase
 import de.upb.cs.swt.delphi.crawler.control.Phase.Phase
@@ -31,7 +31,7 @@ import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, St
 import de.upb.cs.swt.delphi.crawler.preprocessing.{MavenArtifact, MavenDownloadActor}
 import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesResults}
 import de.upb.cs.swt.delphi.crawler.storage.ArtifactExistsQuery
-import de.upb.cs.swt.delphi.crawler.tools.NotYetImplementedException
+import de.upb.cs.swt.delphi.crawler.tools.{ElasticHelper, NotYetImplementedException}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
@@ -64,7 +64,7 @@ class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
   override def start: Try[Long] = {
     implicit val materializer = ActorMaterializer()
     implicit val logger: LoggingAdapter = log
-    implicit val client = ElasticClient(configuration.elasticsearchClientUri)
+    implicit val client = ElasticHelper.buildElasticClient(configuration)
 
     var filteredSource =
       createSource(configuration.mavenRepoBase)

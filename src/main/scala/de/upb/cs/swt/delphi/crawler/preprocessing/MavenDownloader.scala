@@ -16,10 +16,10 @@
 
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
-import java.io.BufferedInputStream
-import java.net.{URI, URL}
+import de.upb.cs.swt.delphi.core.model.MavenIdentifier
 
-import de.upb.cs.swt.delphi.crawler.discovery.maven.{HttpResourceHandler, MavenIdentifier}
+import java.net.{URI, URL}
+import de.upb.cs.swt.delphi.crawler.discovery.maven.HttpResourceHandler
 
 class MavenDownloader(identifier: MavenIdentifier) {
   val http = new HttpResourceHandler(constructArtifactBaseUri())
@@ -32,7 +32,7 @@ class MavenDownloader(identifier: MavenIdentifier) {
     * @return Base URI
     */
   def constructArtifactBaseUri(): URI =
-    new URI(identifier.repository)
+    new URI(identifier.repository.get)
       .resolve(identifier.groupId.replace('.', '/') + "/")
       .resolve(identifier.artifactId + "/")
       // .resolve(identifier.version + "/")
@@ -41,10 +41,10 @@ class MavenDownloader(identifier: MavenIdentifier) {
     constructArtifactBaseUri().resolve(jarFilename(identifier)).toURL
 
   def pomFilename(identifier: MavenIdentifier): String =
-    identifier.version + "/" + identifier.artifactId + "-" + identifier.version + ".pom"
+    identifier.version.get + "/" + identifier.artifactId + "-" + identifier.version.get + ".pom"
 
   def jarFilename(identifier: MavenIdentifier): String =
-    identifier.version + "/" + identifier.artifactId + "-" + identifier.version + ".jar"
+    identifier.version.get + "/" + identifier.artifactId + "-" + identifier.version.get + ".jar"
 
   def downloadJar(): JarFile = {
     JarFile(jarResource.read(), constructArtifactUrl())

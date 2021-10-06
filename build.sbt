@@ -41,7 +41,7 @@ mainClass in (Compile, run) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
 mainClass in (Compile, packageBin) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
 mainClass in Compile :=  Some("de.upb.cs.swt.delphi.crawler.Crawler")
 
-val akkaVersion = "2.5.14"
+val akkaVersion = "2.6.16"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
@@ -49,7 +49,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream" % akkaVersion,
   "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-  "com.typesafe.akka" %% "akka-http-spray-json" % "10.0.8",
+  "com.typesafe.akka" %% "akka-http-spray-json" % "10.2.6",
   "com.typesafe.akka" %% "akka-http" % "10.1.5"
 )
 
@@ -59,19 +59,13 @@ libraryDependencies += "com.pauldijou" %% "jwt-core" % "1.0.0"
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3" % Runtime
 
-val elastic4sVersion = "6.3.0"
+val elastic4sVersion = "7.14.1"
 libraryDependencies ++= Seq(
   "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion,
-
-  // for the http client
-  "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion,
-
-  // if you want to use reactive streams
   "com.sksamuel.elastic4s" %% "elastic4s-http-streams" % elastic4sVersion,
+  "com.sksamuel.elastic4s" %% "elastic4s-client-akka" % elastic4sVersion,
 
-  // testing
-  "com.sksamuel.elastic4s" %% "elastic4s-testkit" % elastic4sVersion % "test",
-  "com.sksamuel.elastic4s" %% "elastic4s-embedded" % elastic4sVersion % "test"
+  "com.sksamuel.elastic4s" %% "elastic4s-testkit" % elastic4sVersion % "test"
 )
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
@@ -99,6 +93,8 @@ libraryDependencies += "org.apache.maven.indexer" % "indexer-reader" % "6.0.0"
 libraryDependencies += "org.apache.maven.indexer" % "indexer-core" % "6.0.0"
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
+
+libraryDependencies += "de.upb.cs.swt.delphi" %% "delphi-core" % "0.9.2"
 
 // Pinning secure versions of insecure transitive libraryDependencies
 // Please update when updating dependencies above (including Play plugin)

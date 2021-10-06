@@ -16,7 +16,7 @@
 
 package de.upb.cs.swt.delphi.crawler.discovery.git
 
-import de.upb.cs.swt.delphi.crawler.Identifier
+import de.upb.cs.swt.delphi.core.model.Identifier
 
 /**
   * Created by benhermann on 06.02.18.

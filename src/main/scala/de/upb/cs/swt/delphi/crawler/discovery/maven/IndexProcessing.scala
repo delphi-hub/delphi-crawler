@@ -18,10 +18,10 @@ package de.upb.cs.swt.delphi.crawler.discovery.maven
 
 import java.net.{URI, URL}
 import java.util
-
 import akka.NotUsed
 import akka.event.LoggingAdapter
 import akka.stream.scaladsl.{RestartSource, Source}
+import de.upb.cs.swt.delphi.core.model.MavenIdentifier
 import org.apache.maven.index.reader.IndexReader
 import org.slf4j.LoggerFactory
 
@@ -81,7 +81,7 @@ class MavenIndexReader(base: URL) {
 
       identifierAttempt match {
         case Success(identifier) => {
-          val mavenId = MavenIdentifier(base.toString, identifier(0), identifier(1), identifier(2))
+          val mavenId = MavenIdentifier(Some(base.toString), identifier(0), identifier(1), Some(identifier(2)))
           log.debug(s"Producing $mavenId")
 
            Some(mavenId)

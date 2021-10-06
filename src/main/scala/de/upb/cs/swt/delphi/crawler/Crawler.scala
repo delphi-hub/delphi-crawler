@@ -17,16 +17,16 @@
 package de.upb.cs.swt.delphi.crawler
 
 import akka.actor.ActorSystem
-import akka.routing.{RoundRobinPool, SmallestMailboxPool}
+import akka.routing.RoundRobinPool
 import akka.stream.ActorMaterializer
-import com.sksamuel.elastic4s.http.ElasticClient
+import com.sksamuel.elastic4s.ElasticClient
+import com.sksamuel.elastic4s.akka.{AkkaHttpClient, AkkaHttpClientSettings}
 import de.upb.cs.swt.delphi.crawler.control.{ProcessScheduler, Server}
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenDiscoveryProcess
 import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceRegistry
-import de.upb.cs.swt.delphi.crawler.preprocessing.PreprocessingDispatchActor
-import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesAnalyzer, ProcessingDispatchActor}
+import de.upb.cs.swt.delphi.crawler.processing.HermesAnalyzer
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
-import de.upb.cs.swt.delphi.crawler.tools.OPALLogAdapter
+import de.upb.cs.swt.delphi.crawler.tools.{ElasticHelper, OPALLogAdapter}
 import org.opalj.log.{GlobalLogContext, OPALLogger}
 
 import scala.concurrent.Await
@@ -69,7 +69,7 @@ object Crawler extends App with AppLogging {
   new Server(configuration.controlServerPort).start()
 
   val elasticPool = system.actorOf(RoundRobinPool(configuration.elasticActorPoolSize)
-    .props(ElasticActor.props(ElasticClient(configuration.elasticsearchClientUri))))
+    .props(ElasticActor.props(ElasticHelper.buildElasticClient(configuration))))
 
   /*
   val hermesPool = system.actorOf(SmallestMailboxPool(configuration.hermesActorPoolSize).props(HermesActor.props()))

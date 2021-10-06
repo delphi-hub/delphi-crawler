@@ -30,8 +30,7 @@ class Configuration {
 
 
 
-  lazy val elasticsearchClientUri: ElasticsearchClientUri = ElasticsearchClientUri(
-    elasticSearchInstance.host + ":" + elasticSearchInstance.portNumber)
+  lazy val elasticsearchClientUri: String = elasticSearchInstance.host + ":" + elasticSearchInstance.portNumber
 
   lazy val elasticSearchInstance : Instance = InstanceRegistry.retrieveElasticSearchInstance(this) match {
     case Success(instance) => instance

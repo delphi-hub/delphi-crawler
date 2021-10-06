@@ -17,20 +17,21 @@
 package de.upb.cs.swt.delphi.crawler.storage
 
 import akka.actor.ActorSystem
-import com.sksamuel.elastic4s.analyzers.KeywordAnalyzer
-import com.sksamuel.elastic4s.http.ElasticClient
-import com.sksamuel.elastic4s.http.ElasticDsl._
+import com.sksamuel.elastic4s.fields.ObjectField
+import de.upb.cs.swt.delphi.crawler.tools.ElasticHelper
 import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration}
 
 import scala.util.{Success, Try}
 
 trait ElasticIndexMaintenance extends AppLogging {
 
+  import com.sksamuel.elastic4s.ElasticDsl._
+
 
   def createDelphiIndex(configuration: Configuration)(implicit system: ActorSystem): Try[Configuration] = {
     log.warning("Could not find Delphi index. Creating it...")
 
-    val client = ElasticClient(configuration.elasticsearchClientUri)
+    val client = ElasticHelper.buildElasticClient(configuration)
     val featureList = ElasticFeatureListMapping.getMapAsSeq
 
     val identifierFields = Seq(
@@ -45,25 +46,24 @@ trait ElasticIndexMaintenance extends AppLogging {
     )
 
     val f = client.execute {
-      createIndex(delphi) mappings (
-        mapping(project) as(
-          keywordField("name"),
-          keywordField("source"),
-          keywordField("language"),
-          dateField("discovered"),
-
-          objectField("identifier") fields identifierFields,
-
-          nestedField("calls") fields Seq(
-            keywordField("name"),
-            objectField("identifier") fields identifierFields,
-            textField("methods") analyzer KeywordAnalyzer
-          ),
-
-          objectField("features") fields featureList
-        )
-        )
-
+      createIndex(identifierIndexName) mapping properties (
+        keywordField("name"),
+        keywordField("source"),
+        dateField("discovered"),
+        ObjectField(name = "identifier", properties = identifierFields)
+      )
+      createIndex(metadataIndexName) mapping properties (
+        keywordField("name"),
+        ObjectField(name = "identifier", properties = identifierFields),
+        keywordField("packaging"),
+        textField("description"),
+        textField("license")
+      )
+      createIndex(metricIndexName) mapping properties (
+        keywordField("name"),
+        ObjectField(name = "identifier", properties = identifierFields),
+        ObjectField(name = "features", properties = featureList)
+      )
     }.await
 
     //Increases maximum number of nested fields

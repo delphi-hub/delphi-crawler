@@ -18,11 +18,10 @@ package de.upb.cs.swt.delphi.crawler.storage
 
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.event.LoggingAdapter
-import com.sksamuel.elastic4s.http.ElasticClient
-import de.upb.cs.swt.delphi.crawler.Identifier
+import com.sksamuel.elastic4s.ElasticClient
+import de.upb.cs.swt.delphi.core.model.{Identifier, MavenIdentifier}
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
 import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
-import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.processing.HermesResults
 
 /**

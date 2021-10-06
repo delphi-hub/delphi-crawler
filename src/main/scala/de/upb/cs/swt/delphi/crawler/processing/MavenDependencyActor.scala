@@ -1,8 +1,8 @@
 package de.upb.cs.swt.delphi.crawler.processing
 
 import akka.actor.{Actor, ActorLogging, Props}
+import de.upb.cs.swt.delphi.core.model.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.Configuration
-import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.preprocessing.{MavenDownloader, PomFile}
 import org.apache.maven.artifact.repository.metadata.io.xpp3.MetadataXpp3Reader
 import org.apache.maven.artifact.versioning.ComparableVersion
@@ -63,7 +63,7 @@ class MavenDependencyActor(configuration: Configuration) extends Actor with Acto
       val artifactId = resolveProperty(d.getArtifactId, pomObj).getOrElse(throw new Exception)
       val versionSpec = resolveProperty(d.getVersion, pomObj).getOrElse(throw new Exception)
 
-      val tempId = MavenIdentifier(configuration.mavenRepoBase.toString, groupId, artifactId, versionSpec)
+      val tempId = MavenIdentifier(Some(configuration.mavenRepoBase.toString), groupId, artifactId, Some(versionSpec))
 
       val downloader = new MavenDownloader(tempId)
       val metaFile = downloader.downloadMeta()
@@ -82,7 +82,7 @@ class MavenDependencyActor(configuration: Configuration) extends Actor with Acto
         }
         version match {
           case Some(v) =>
-            MavenIdentifier(configuration.mavenRepoBase.toString, groupId, artifactId, v)
+            MavenIdentifier(Some(configuration.mavenRepoBase.toString), groupId, artifactId, Some(v))
           case None =>
             throw new Exception
         }

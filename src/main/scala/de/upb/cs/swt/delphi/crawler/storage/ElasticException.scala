@@ -16,7 +16,7 @@
 
 package de.upb.cs.swt.delphi.crawler.storage
 
-import com.sksamuel.elastic4s.http.ElasticError
+import com.sksamuel.elastic4s.ElasticError
 
 /**
   * Models an error thrown by the elasticsearch client

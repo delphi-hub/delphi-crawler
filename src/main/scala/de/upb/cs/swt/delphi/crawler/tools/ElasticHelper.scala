@@ -13,10 +13,19 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+package de.upb.cs.swt.delphi.crawler.tools
 
-package de.upb.cs.swt.delphi.crawler
+import akka.actor.ActorSystem
+import com.sksamuel.elastic4s.ElasticClient
+import com.sksamuel.elastic4s.akka.{AkkaHttpClient, AkkaHttpClientSettings}
+import de.upb.cs.swt.delphi.crawler.Configuration
 
-/**
-  * Represents an identifier for a software artifact
-  */
-trait Identifier
+object ElasticHelper {
+
+  def buildElasticClient(configuration: Configuration)
+                        (implicit system: ActorSystem): ElasticClient = {
+    val httpClientSettings = AkkaHttpClientSettings(Seq(configuration.elasticsearchClientUri))
+    ElasticClient(AkkaHttpClient(httpClientSettings))
+  }
+
+}

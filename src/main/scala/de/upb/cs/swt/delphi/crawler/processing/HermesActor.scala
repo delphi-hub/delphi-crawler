@@ -16,12 +16,9 @@
 
 package de.upb.cs.swt.delphi.crawler.processing
 
-import java.net.URL
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
+import de.upb.cs.swt.delphi.core.model.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
-import org.opalj.br.analyses.Project
 
 import scala.util.Try
 

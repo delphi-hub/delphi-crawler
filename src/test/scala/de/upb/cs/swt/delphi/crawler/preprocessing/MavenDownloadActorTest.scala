@@ -20,7 +20,7 @@ import akka.actor.ActorSystem
 import akka.pattern.ask
 import akka.testkit.{ImplicitSender, TestKit}
 import akka.util.Timeout
-import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
+import de.upb.cs.swt.delphi.core.model.MavenIdentifier
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 import scala.concurrent.duration._
@@ -38,13 +38,10 @@ class MavenDownloadActorTest extends TestKit(ActorSystem("DownloadActor"))
   with WordSpecLike
   with Matchers
   with BeforeAndAfterAll {
-  override def afterAll {
-    TestKit.shutdownActorSystem(system)
-  }
 
   "The maven download actor" must {
     "create a maven artifact with a jar and pom file" in {
-      val mavenIdentifier = new MavenIdentifier("http://central.maven.org/maven2/", "junit", "junit", "4.12")
+      val mavenIdentifier = new MavenIdentifier(Some("https://repo1.maven.org/maven2/"), "junit", "junit", Some("4.12"))
       val downloadActor = system.actorOf(MavenDownloadActor.props)
 
       implicit val timeout = Timeout(10 seconds)
