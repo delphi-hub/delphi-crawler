@@ -18,9 +18,7 @@ package de.upb.cs.swt.delphi.crawler
 
 import akka.actor.ActorSystem
 import akka.routing.RoundRobinPool
-import akka.stream.ActorMaterializer
-import com.sksamuel.elastic4s.ElasticClient
-import com.sksamuel.elastic4s.akka.{AkkaHttpClient, AkkaHttpClientSettings}
+import akka.stream.{ActorMaterializer, Materializer}
 import de.upb.cs.swt.delphi.crawler.control.{ProcessScheduler, Server}
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenDiscoveryProcess
 import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceRegistry
@@ -28,8 +26,8 @@ import de.upb.cs.swt.delphi.crawler.processing.HermesAnalyzer
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
 import de.upb.cs.swt.delphi.crawler.tools.{ElasticHelper, OPALLogAdapter}
 
-import scala.concurrent.Await
 import scala.concurrent.duration._
+import scala.concurrent.{Await, ExecutionContext}
 import scala.util.{Failure, Success}
 
 /**
@@ -39,7 +37,6 @@ object Crawler extends App with AppLogging {
   private val configuration = new Configuration()
 
   implicit val system: ActorSystem = ActorSystem("delphi-crawler")
-  implicit val materializer = ActorMaterializer()
 
   OPALLogAdapter.setOpalLoggingEnabled(true)
   HermesAnalyzer.setConfig()
@@ -55,11 +52,10 @@ object Crawler extends App with AppLogging {
   Startup.showStartupInfo
   Startup.preflightCheck(configuration) match {
     case Success(c) =>
-    case Failure(e) => {
+    case Failure(e) =>
       InstanceRegistry.handleInstanceFailure(configuration)
       system.terminate()
       sys.exit(1)
-    }
   }
 
 

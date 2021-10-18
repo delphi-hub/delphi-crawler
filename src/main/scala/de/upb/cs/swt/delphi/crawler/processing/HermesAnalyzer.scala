@@ -103,7 +103,7 @@ class HermesAnalyzer(project: Project[URL]) extends HermesCore {
 object HermesAnalyzer extends HermesCore {
 
   def setConfig(): Unit = {
-    var internalConfigurationFile = temporaryConfigFile
+    var internalConfigurationFile = temporaryConfigFile()
     initialize(internalConfigurationFile)
   }
 

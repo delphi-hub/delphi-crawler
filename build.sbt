@@ -37,9 +37,9 @@ lazy val crawler = (project in file(".")).
 
 scalastyleConfig := baseDirectory.value / "project" / "scalastyle-config.xml"
 
-mainClass in (Compile, run) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
-mainClass in (Compile, packageBin) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
-mainClass in Compile :=  Some("de.upb.cs.swt.delphi.crawler.Crawler")
+Compile / run / mainClass := Some("de.upb.cs.swt.delphi.crawler.Crawler")
+Compile / packageBin / mainClass := Some("de.upb.cs.swt.delphi.crawler.Crawler")
+Compile / mainClass := Some("de.upb.cs.swt.delphi.crawler.Crawler")
 
 val akkaVersion = "2.6.16"
 

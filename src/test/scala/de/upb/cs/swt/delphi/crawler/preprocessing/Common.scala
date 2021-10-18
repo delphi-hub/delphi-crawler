@@ -28,7 +28,7 @@ object Common {
     val bytes = new Array[Byte] (4096)
     var len: Int = 0
     while ( {
-      len = stream.read(bytes);
+      len = stream.read(bytes)
       len != -1
     }) {
       buffer.write(bytes, 0, len)

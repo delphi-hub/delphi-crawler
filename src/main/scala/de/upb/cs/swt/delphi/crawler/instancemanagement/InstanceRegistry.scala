@@ -39,7 +39,6 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
 
   implicit val system : ActorSystem = Crawler.system
   implicit val ec  : ExecutionContext = system.dispatcher
-  implicit val materializer : ActorMaterializer = Crawler.materializer
 
 
   lazy val instanceIdFromEnv : Option[Long] = Try[Long](sys.env("INSTANCE_ID").toLong).toOption

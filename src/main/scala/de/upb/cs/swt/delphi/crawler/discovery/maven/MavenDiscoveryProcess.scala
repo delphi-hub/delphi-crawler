@@ -20,21 +20,23 @@ import akka.actor.{ActorRef, ActorSystem}
 import akka.event.LoggingAdapter
 import akka.pattern.ask
 import akka.routing.SmallestMailboxPool
-import akka.stream.{ActorMaterializer, ThrottleMode}
-import akka.stream.scaladsl.{Keep, Sink}
+import akka.stream.ActorMaterializer
+import akka.stream.scaladsl.Sink
 import akka.util.Timeout
+import com.sksamuel.elastic4s.ElasticClient
 import de.upb.cs.swt.delphi.core.model.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration}
 import de.upb.cs.swt.delphi.crawler.control.Phase
 import de.upb.cs.swt.delphi.crawler.control.Phase.Phase
-import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
 import de.upb.cs.swt.delphi.crawler.preprocessing.{MavenArtifact, MavenDownloadActor}
 import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesResults}
 import de.upb.cs.swt.delphi.crawler.storage.ArtifactExistsQuery
+import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
 import de.upb.cs.swt.delphi.crawler.tools.{ElasticHelper, NotYetImplementedException}
+import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 
 
@@ -56,15 +58,17 @@ class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
 
   private val seen = mutable.HashSet[MavenIdentifier]()
 
-  val downloaderPool = system.actorOf(SmallestMailboxPool(8).props(MavenDownloadActor.props))
-  val hermesPool = system.actorOf(SmallestMailboxPool(configuration.hermesActorPoolSize).props(HermesActor.props()))
+  val downloaderPool: ActorRef =
+    system.actorOf(SmallestMailboxPool(8).props(MavenDownloadActor.props))
+  val hermesPool: ActorRef =
+    system.actorOf(SmallestMailboxPool(configuration.hermesActorPoolSize).props(HermesActor.props()))
 
   override def phase: Phase = Phase.Discovery
 
   override def start: Try[Long] = {
-    implicit val materializer = ActorMaterializer()
     implicit val logger: LoggingAdapter = log
-    implicit val client = ElasticHelper.buildElasticClient(configuration)
+    implicit val client: ElasticClient =
+      ElasticHelper.buildElasticClient(configuration)
 
     var filteredSource =
       createSource(configuration.mavenRepoBase)
@@ -81,7 +85,7 @@ class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
       filteredSource = filteredSource.take(configuration.limit)
     }
 
-    implicit val timeout = Timeout(5 minutes)
+    implicit val timeout: Timeout = Timeout(5 minutes)
 
     val preprocessing =
       filteredSource

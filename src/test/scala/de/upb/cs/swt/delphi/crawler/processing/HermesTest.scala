@@ -19,11 +19,13 @@ package de.upb.cs.swt.delphi.crawler.processing
 import java.io.BufferedInputStream
 import java.util.jar.JarInputStream
 import de.upb.cs.swt.delphi.crawler.tools.{ClassStreamReader, OPALLogAdapter}
-import org.scalatest.{BeforeAndAfterAll, FlatSpec, Matchers}
+import org.scalatest.flatspec.AnyFlatSpecLike
+import org.scalatest.matchers.should
+import org.scalatest.BeforeAndAfterAll
 
 import scala.reflect.io.File
 
-class HermesTest extends FlatSpec with Matchers with BeforeAndAfterAll {
+class HermesTest extends AnyFlatSpecLike with should.Matchers with BeforeAndAfterAll {
 
   override protected def beforeAll(): Unit = {
     HermesAnalyzer.setConfig()
@@ -35,7 +37,7 @@ class HermesTest extends FlatSpec with Matchers with BeforeAndAfterAll {
     val fis = file.inputStream()
     val jis = new JarInputStream(new BufferedInputStream(fis))
 
-    val p = ClassStreamReader.createProject(file.toURL, jis, true)
+    val p = ClassStreamReader.createProject(file.toURL, jis, projectIsLibrary = true)
 
     val result = new HermesAnalyzer(p).analyzeProject()
     for {
@@ -47,7 +49,7 @@ class HermesTest extends FlatSpec with Matchers with BeforeAndAfterAll {
   }
 
   "HermesVersion" should "be a valid version string" in {
-    HermesAnalyzer.HermesVersion shouldBe a [String]
+    HermesAnalyzer.HermesVersion shouldBe a[String]
     HermesAnalyzer.HermesVersion shouldBe "4.0.0"
   }
 

@@ -33,28 +33,24 @@ class ProcessScheduler extends Actor with ActorLogging {
   private val queue = mutable.Queue.empty[Process[_]]
 
   override def receive: Receive = {
-    case Enqueue(process) => {
+    case Enqueue(process) =>
       queue.enqueue(process)
       self ! UpdateQueue
-    }
-    case Finalized(process, result) => {
+    case Finalized(process, result) =>
       running.find(_.equals(process)) match {
-        case Some(f) => {
+        case Some(f) =>
           // TODO: Maybe do some permanent logging here
           running.remove(process)
           self ! UpdateQueue
-        }
         case None => log.warning(s"Could not finalized process: $process")
       }
-    }
-    case UpdateQueue => {
-      if (running.size < parallelism && queue.size > 0) {
+    case UpdateQueue =>
+      if (running.size < parallelism && queue.nonEmpty) {
         val nextProcess = queue.dequeue()
         running.add(nextProcess)
         val actor = context.actorOf(ProcessActor.props(nextProcess))
         actor ! ProcessActor.Go
       }
-    }
     case x => log.warning(s"Scheduler received unknown message. This should never ever happen. Message was: $x")
   }
 }

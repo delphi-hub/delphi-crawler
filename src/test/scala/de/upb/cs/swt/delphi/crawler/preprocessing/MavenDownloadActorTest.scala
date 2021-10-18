@@ -49,12 +49,12 @@ class MavenDownloadActorTest extends TestKit(ActorSystem("DownloadActor"))
 
       val f = downloadActor ? mavenIdentifier
 
-      val msg = Await.result(f, 10 seconds)
-
-      assert(msg.isInstanceOf[Success[MavenArtifact]])
-      val artifact = msg.asInstanceOf[Success[MavenArtifact]].get
-      checkJar(artifact.jarFile.is)
-      checkPom(artifact.pomFile.is)
+      Await.result(f, 10 seconds) match {
+        case Success(a: MavenArtifact) =>
+          checkJar(a.jarFile.is)
+          checkPom(a.pomFile.is)
+        case _ => fail()
+      }
 
 
     }

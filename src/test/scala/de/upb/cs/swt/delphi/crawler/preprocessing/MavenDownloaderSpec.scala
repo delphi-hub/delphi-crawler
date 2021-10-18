@@ -16,7 +16,6 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
 import de.upb.cs.swt.delphi.core.model.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.preprocessing.MavenDownloader
 import org.scalatest.{FlatSpec, Matchers}
 import de.upb.cs.swt.delphi.crawler.preprocessing.Common._
 
