@@ -27,7 +27,6 @@ import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceRegistry
 import de.upb.cs.swt.delphi.crawler.processing.HermesAnalyzer
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
 import de.upb.cs.swt.delphi.crawler.tools.{ElasticHelper, OPALLogAdapter}
-import org.opalj.log.{GlobalLogContext, OPALLogger}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -42,7 +41,7 @@ object Crawler extends App with AppLogging {
   implicit val system: ActorSystem = ActorSystem("delphi-crawler")
   implicit val materializer = ActorMaterializer()
 
-  OPALLogger.updateLogger(GlobalLogContext, OPALLogAdapter)
+  OPALLogAdapter.setOpalLoggingEnabled(true)
   HermesAnalyzer.setConfig()
 
   sys.addShutdownHook({

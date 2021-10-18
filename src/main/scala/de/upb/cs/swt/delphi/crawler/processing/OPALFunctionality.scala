@@ -27,8 +27,7 @@ import scala.util.Try
 trait OPALFunctionality {
 
   def reifyProject(m: MavenArtifact): Project[URL] = {
-    val project = new ClassStreamReader {}.createProject(m.identifier.toJarLocation.toURL,
-      new JarInputStream(m.jarFile.is))
+    val project = ClassStreamReader.createProject(m.identifier.toJarLocation.toURL,true)
     Try(m.jarFile.is.close())
     project
   }
