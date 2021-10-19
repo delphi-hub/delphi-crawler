@@ -102,7 +102,8 @@ trait ElasticStoreQueries {
             "dependencies" -> metadata.dependencies.map{ dep =>
               Map("groupId" -> dep.identifier.groupId, "artifactId" -> dep.identifier.artifactId,
                 "version" -> dep.identifier.version.get, "scope" -> dep.scope.getOrElse("default"))
-            }
+            },
+            "published" -> published.getOrElse("Unknown")
           )
         }.await
         Some(result)

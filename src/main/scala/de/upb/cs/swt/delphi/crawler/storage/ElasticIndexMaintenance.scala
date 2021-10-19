@@ -61,7 +61,8 @@ trait ElasticIndexMaintenance extends AppLogging {
         textField("licenses"),
         textField("issueManagement"),
         textField("developers"),
-        nestedField("dependencies").fields( identifierFields ++ Seq(keywordField("scope")) )
+        nestedField("dependencies").fields( identifierFields ++ Seq(keywordField("scope")) ),
+        dateField("published")
       )
       createIndex(metricIndexName) mapping properties (
         keywordField("name"),

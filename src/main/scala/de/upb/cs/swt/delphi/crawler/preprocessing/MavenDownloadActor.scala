@@ -61,6 +61,9 @@ class MavenDownloadActor extends Actor with ActorLogging {
               log.error(ex, s"Failed to download JAR file for ${mavenIdent.toUniqueString}")
               sender() ! Failure(ex)
           }
+        case Failure(HttpException(code)) if code.intValue() == 404 =>
+          log.error(s"Failed to download POM file for ${mavenIdent.toUniqueString}")
+          sender() ! Failure(HttpException(code))
         case Failure(ex) =>
           log.error(ex, s"Failed to download POM file for ${mavenIdent.toUniqueString}")
           sender() ! Failure(ex)
