@@ -18,7 +18,6 @@ package de.upb.cs.swt.delphi.crawler
 
 import akka.actor.ActorSystem
 import akka.routing.RoundRobinPool
-import akka.stream.{ActorMaterializer, Materializer}
 import de.upb.cs.swt.delphi.crawler.control.{ProcessScheduler, Server}
 import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenDiscoveryProcess
 import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceRegistry
@@ -26,16 +25,16 @@ import de.upb.cs.swt.delphi.crawler.processing.HermesAnalyzer
 import de.upb.cs.swt.delphi.crawler.storage.ElasticActor
 import de.upb.cs.swt.delphi.crawler.tools.{ElasticHelper, OPALLogAdapter}
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
-import scala.concurrent.{Await, ExecutionContext}
 import scala.util.{Failure, Success}
 
 /**
   * The starter for Delphi Crawler
   */
 object Crawler extends App with AppLogging {
-  private val configuration = new Configuration()
 
+  private val configuration = new Configuration()
   implicit val system: ActorSystem = ActorSystem("delphi-crawler")
 
   OPALLogAdapter.setOpalLoggingEnabled(true)
@@ -65,13 +64,6 @@ object Crawler extends App with AppLogging {
 
   val elasticPool = system.actorOf(RoundRobinPool(configuration.elasticActorPoolSize)
     .props(ElasticActor.props(ElasticHelper.buildElasticClient(configuration))))
-
-  /*
-  val hermesPool = system.actorOf(SmallestMailboxPool(configuration.hermesActorPoolSize).props(HermesActor.props()))
-  val processingDispatchActor = system.actorOf(ProcessingDispatchActor.props(hermesPool))
-
-  val preprocessingDispatchActor = system.actorOf(PreprocessingDispatchActor.props(configuration, processingDispatchActor, elasticPool))
-*/
 
   val processScheduler = system.actorOf(ProcessScheduler.props)
   processScheduler ! ProcessScheduler.Enqueue(new MavenDiscoveryProcess(configuration, elasticPool))

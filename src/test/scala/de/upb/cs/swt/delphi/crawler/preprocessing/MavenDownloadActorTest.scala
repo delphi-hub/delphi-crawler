@@ -21,6 +21,7 @@ import akka.pattern.ask
 import akka.testkit.{ImplicitSender, TestKit}
 import akka.util.Timeout
 import de.upb.cs.swt.delphi.core.model.MavenIdentifier
+import de.upb.cs.swt.delphi.crawler.model.MavenArtifact
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 import scala.concurrent.duration._
@@ -51,7 +52,8 @@ class MavenDownloadActorTest extends TestKit(ActorSystem("DownloadActor"))
 
       Await.result(f, 10 seconds) match {
         case Success(a: MavenArtifact) =>
-          checkJar(a.jarFile.is)
+          assert(a.jarFile.isDefined)
+          checkJar(a.jarFile.get.is)
           checkPom(a.pomFile.is)
         case _ => fail()
       }

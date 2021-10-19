@@ -19,7 +19,7 @@ package de.upb.cs.swt.delphi.crawler.discovery.maven
 import akka.actor.{ActorRef, ActorSystem}
 import akka.event.LoggingAdapter
 import akka.pattern.ask
-import akka.routing.SmallestMailboxPool
+import akka.routing.{RoundRobinPool, SmallestMailboxPool}
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.Sink
 import akka.util.Timeout
@@ -27,8 +27,9 @@ import com.sksamuel.elastic4s.ElasticClient
 import de.upb.cs.swt.delphi.core.model.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.control.Phase
 import de.upb.cs.swt.delphi.crawler.control.Phase.Phase
-import de.upb.cs.swt.delphi.crawler.preprocessing.{MavenArtifact, MavenDownloadActor}
-import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesResults}
+import de.upb.cs.swt.delphi.crawler.model.MavenArtifact
+import de.upb.cs.swt.delphi.crawler.preprocessing.MavenDownloadActor
+import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesResults, PomFileReadActor}
 import de.upb.cs.swt.delphi.crawler.storage.ArtifactExistsQuery
 import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
 import de.upb.cs.swt.delphi.crawler.tools.{ElasticHelper, NotYetImplementedException}
@@ -59,7 +60,11 @@ class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
   private val seen = mutable.HashSet[MavenIdentifier]()
 
   val downloaderPool: ActorRef =
-    system.actorOf(SmallestMailboxPool(8).props(MavenDownloadActor.props))
+    system.actorOf(SmallestMailboxPool(configuration.downloadActorPoolSize).props(MavenDownloadActor.props))
+
+  val pomReaderPool: ActorRef =
+    system.actorOf(RoundRobinPool(configuration.pomReadActorPoolSize).props(PomFileReadActor.props(configuration)))
+
   val hermesPool: ActorRef =
     system.actorOf(SmallestMailboxPool(configuration.hermesActorPoolSize).props(HermesActor.props()))
 
@@ -94,16 +99,27 @@ class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
         .filter(artifact => artifact.isSuccess)
         .map(artifact => artifact.get)
 
-    val finalizer =
+
+    val processing =
       preprocessing
-        .mapAsync(configuration.hermesActorPoolSize)(artifact => (hermesPool ? artifact).mapTo[Try[HermesResults]])
-        .filter(results => results.isSuccess)
-        .map(results => results.get)
-        .alsoTo(createSinkFromActorRef[HermesResults](elasticPool))
-        .to(Sink.ignore)
-        .run()
+        .mapAsync(8)(artifact => (pomReaderPool ? artifact).mapTo[MavenArtifact])
+        .filter{ artifact =>
+          val isValid = checkValidPackaging(artifact)
+
+          if(!isValid){
+            log.error(s"Invalid packaging for ${artifact.identifier.toUniqueString}")
+          }
+
+          isValid
+        }
+        .runWith(createSinkFromActorRef[MavenArtifact](elasticPool))
 
     Success(0L)
+  }
+
+  private def checkValidPackaging(artifact: MavenArtifact): Boolean = {
+    artifact.jarFile.isDefined ||
+      artifact.metadata.isDefined && !artifact.metadata.get.packaging.equalsIgnoreCase("jar")
   }
 
   private def createSinkFromActorRef[T](actorRef: ActorRef) = {

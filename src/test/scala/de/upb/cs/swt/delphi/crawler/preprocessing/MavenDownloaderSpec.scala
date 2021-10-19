@@ -18,6 +18,7 @@ package de.upb.cs.swt.delphi.crawler.preprocessing
 import de.upb.cs.swt.delphi.core.model.MavenIdentifier
 import org.scalatest.{FlatSpec, Matchers}
 import de.upb.cs.swt.delphi.crawler.preprocessing.Common._
+import de.upb.cs.swt.delphi.crawler.tools.MavenDownloader
 
 class MavenDownloaderSpec extends FlatSpec with Matchers {
   "MavenDownloader" should "save jar file" in {

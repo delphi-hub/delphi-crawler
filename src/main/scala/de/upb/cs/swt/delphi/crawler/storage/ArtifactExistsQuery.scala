@@ -37,9 +37,7 @@ trait ArtifactExistsQuery {
     */
   def exists(identifier : MavenIdentifier)(implicit client : ElasticClient) : Boolean = {
     client.execute {
-      search(identifierIndexName) query must (
-        matchQuery("name", identifier.toUniqueString)
-      )
+      search(identifierIndexName) query must(idsQuery(identifier.toUniqueString))
     }.await match {
       case RequestSuccess(_,_,_,SearchResponse(_, false, false, _, _, _, _, hits)) => hits.hits.length > 0
       case _ => false

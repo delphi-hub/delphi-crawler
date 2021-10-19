@@ -21,6 +21,7 @@ import com.sksamuel.elastic4s.{ElasticClient, Response}
 import com.sksamuel.elastic4s.requests.indexes.IndexResponse
 import de.upb.cs.swt.delphi.core.model.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
+import de.upb.cs.swt.delphi.crawler.model.MavenArtifactMetadata
 import de.upb.cs.swt.delphi.crawler.processing.{HermesAnalyzer, HermesResults}
 import org.joda.time.DateTime
 
@@ -74,5 +75,40 @@ trait ElasticStoreQueries {
             "version" -> m.version.get),
           "discovered" -> DateTime.now())
     }.await
+  }
+
+  def store(ident: MavenIdentifier, metadata: MavenArtifactMetadata, published: Option[DateTime])
+           (implicit client: ElasticClient, log: LoggingAdapter): Option[Response[IndexResponse]] = {
+    elasticId(ident) match {
+      case Some(id) =>
+        log.info(s"Pushing metadata results for $ident under id $id.")
+        val result = client.execute {
+          indexInto(metadataIndexName).id(id).fields(
+            "name" -> metadata.name,
+            "identifier" -> Map(
+              "groupId" -> ident.groupId,
+              "artifactId" -> ident.artifactId,
+              "version" -> ident.version.get
+            ),
+            "packaging" -> metadata.packaging,
+            "description" -> metadata.description,
+            "parent" -> metadata
+              .parent
+              .map(m => Map("groupId" -> m.groupId, "artifactId" -> m.artifactId, "version" -> m.version.get))
+              .getOrElse(Map.empty),
+            "licenses" -> metadata.licenses.map(_.toString).mkString(","),
+            "issueManagement" -> metadata.issueManagement.map(_.toString).getOrElse("None"),
+            "developers" -> metadata.developers.mkString(","),
+            "dependencies" -> metadata.dependencies.map{ dep =>
+              Map("groupId" -> dep.identifier.groupId, "artifactId" -> dep.identifier.artifactId,
+                "version" -> dep.identifier.version.get, "scope" -> dep.scope.getOrElse("default"))
+            }
+          )
+        }.await
+        Some(result)
+      case None =>
+        log.warning(s"Tried to push metadata results for non-existing identifier: $ident.")
+        None
+    }
   }
 }

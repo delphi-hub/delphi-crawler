@@ -35,7 +35,7 @@ object ElasticIndexPreflightCheck extends PreflightCheck with ElasticIndexMainte
     lazy val client = ElasticHelper.buildElasticClient(configuration)
 
     val f = client.execute {
-      indexExists("delphi")
+      indexExists(identifierIndexName) //TODO: May want to check all three indices
     } andThen {
       case _ => client.close()
     }

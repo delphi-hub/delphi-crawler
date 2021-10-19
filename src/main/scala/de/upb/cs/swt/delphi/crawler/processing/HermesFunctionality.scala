@@ -15,9 +15,9 @@
 // limitations under the License.
 
 package de.upb.cs.swt.delphi.crawler.processing
-import java.net.URL
+import de.upb.cs.swt.delphi.crawler.model.MavenArtifact
 
-import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
+import java.net.URL
 import org.opalj.br.analyses.Project
 import org.opalj.hermes.{Feature, FeatureQuery}
 

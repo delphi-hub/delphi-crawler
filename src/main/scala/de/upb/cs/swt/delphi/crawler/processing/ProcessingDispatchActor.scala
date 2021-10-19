@@ -17,7 +17,7 @@
 package de.upb.cs.swt.delphi.crawler.processing
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
+import de.upb.cs.swt.delphi.crawler.model.MavenArtifact
 
 class ProcessingDispatchActor(hermesActor : ActorRef) extends Actor with ActorLogging {
   override def receive: Receive = {

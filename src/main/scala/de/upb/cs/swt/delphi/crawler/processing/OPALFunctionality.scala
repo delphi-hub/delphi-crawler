@@ -15,10 +15,10 @@
 // limitations under the License.
 
 package de.upb.cs.swt.delphi.crawler.processing
+import de.upb.cs.swt.delphi.crawler.model.MavenArtifact
+
 import java.net.URL
 import java.util.jar.JarInputStream
-
-import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
 import de.upb.cs.swt.delphi.crawler.tools.ClassStreamReader
 import org.opalj.br.analyses.Project
 
@@ -28,7 +28,7 @@ trait OPALFunctionality {
 
   def reifyProject(m: MavenArtifact): Project[URL] = {
     val project = ClassStreamReader.createProject(m.identifier.toJarLocation.toURL,true)
-    Try(m.jarFile.is.close())
+    Try(m.jarFile.get.is.close())
     project
   }
 }

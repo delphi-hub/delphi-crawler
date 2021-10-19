@@ -14,13 +14,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package de.upb.cs.swt.delphi.crawler.preprocessing
+package de.upb.cs.swt.delphi.crawler.tools
 
 import de.upb.cs.swt.delphi.core.model.MavenIdentifier
+import de.upb.cs.swt.delphi.crawler.discovery.maven.HttpResourceHandler
+import de.upb.cs.swt.delphi.crawler.model.{JarFile, MetaFile, PomFile}
 
 import java.net.{URI, URL}
-import de.upb.cs.swt.delphi.crawler.discovery.maven.HttpResourceHandler
 
+/**
+  * Http downloader that does not require any actor system, but instead uses Apaches Maven Resource interface to
+  * process HTTP requests. Only used in tests.
+  *
+  * @param identifier Identifier to download
+  */
 class MavenDownloader(identifier: MavenIdentifier) {
   val http = new HttpResourceHandler(constructArtifactBaseUri())
   val pomResource = http.locate(pomFilename(identifier))
