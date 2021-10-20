@@ -74,8 +74,6 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
 
           sender() ! MavenArtifact.withMetadata(artifact, metadata)
 
-          log.info(s"Successfully processed POM file for $identifier")
-
         case Failure(ex) =>
           log.error(s"Failed to parse POM file for artifact $identifier",ex )
           // Best effort semantics: If parsing fails, artifact is returned without metadata

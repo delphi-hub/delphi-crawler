@@ -18,7 +18,7 @@ package de.upb.cs.swt.delphi.crawler.preprocessing
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
 import de.upb.cs.swt.delphi.core.model.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.model.{JarFile, MavenArtifact, PomFile}
+import de.upb.cs.swt.delphi.crawler.model.{JarFile, MavenArtifact, PomFile, ProcessingPhaseFailedException}
 import de.upb.cs.swt.delphi.crawler.tools.{HttpDownloader, HttpException}
 import org.joda.time.format.DateTimeFormat
 
@@ -54,19 +54,19 @@ class MavenDownloadActor extends Actor with ActorLogging {
             case Success(jarStream) =>
               sender() ! Success(MavenArtifact(mavenIdent, PomFile(pomStream),
                 Some(JarFile(jarStream, mavenIdent.toJarLocation.toURL)), pomPublicationDate, None))
-            case Failure(HttpException(code)) if code.intValue() == 404 =>
+            case Failure(ex@HttpException(code)) if code.intValue() == 404 =>
               log.warning(s"No JAR file could be located for ${mavenIdent.toUniqueString}")
               sender() ! Success(MavenArtifact(mavenIdent, PomFile(pomStream), None, pomPublicationDate, None))
             case Failure(ex) =>
               log.error(ex, s"Failed to download JAR file for ${mavenIdent.toUniqueString}")
-              sender() ! Failure(ex)
+              sender() ! Failure(ProcessingPhaseFailedException(mavenIdent, ex))
           }
-        case Failure(HttpException(code)) if code.intValue() == 404 =>
+        case Failure(ex@HttpException(code)) if code.intValue() == 404 =>
           log.error(s"Failed to download POM file for ${mavenIdent.toUniqueString}")
-          sender() ! Failure(HttpException(code))
+          sender() ! Failure(ProcessingPhaseFailedException(mavenIdent, ex))
         case Failure(ex) =>
           log.error(ex, s"Failed to download POM file for ${mavenIdent.toUniqueString}")
-          sender() ! Failure(ex)
+          sender() ! Failure(ProcessingPhaseFailedException(mavenIdent, ex))
       }
     }
 }

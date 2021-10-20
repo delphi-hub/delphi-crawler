@@ -18,7 +18,7 @@ package de.upb.cs.swt.delphi.crawler.processing
 
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import de.upb.cs.swt.delphi.core.model.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.model.MavenArtifact
+import de.upb.cs.swt.delphi.crawler.model.{MavenArtifact, ProcessingPhaseFailedException}
 
 import scala.util.{Failure, Success, Try}
 
@@ -26,18 +26,21 @@ class HermesActor() extends Actor with ActorLogging with OPALFunctionality with 
 
   def receive: PartialFunction[Any, Unit] = {
     case m : MavenArtifact => {
-      log.info(s"Starting analysis for $m")
+      log.info(s"Starting analysis for ${m.identifier.toString}")
 
       val hermesResult = Try {
         computeHermesResult(m, reifyProject(m))
       }
 
       hermesResult match {
-        case Success(r) => log.info(s"Hermes run successful for ${m.identifier.toUniqueString}")
-        case Failure(ex) => log.error(ex, s"Hermes run failed for ${m.identifier}")
+        case Success(r) =>
+          sender() ! hermesResult
+        case Failure(ex) =>
+          log.error(ex, s"Hermes run failed for ${m.identifier}")
+          sender() ! Failure(ProcessingPhaseFailedException(m.identifier, ex))
       }
 
-      sender() ! hermesResult
+
     }
   }
 }

@@ -21,7 +21,7 @@ import akka.event.LoggingAdapter
 import com.sksamuel.elastic4s.ElasticClient
 import de.upb.cs.swt.delphi.core.model.{Identifier, MavenIdentifier}
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
-import de.upb.cs.swt.delphi.crawler.model.MavenArtifact
+import de.upb.cs.swt.delphi.crawler.model.{MavenArtifact, ProcessingError}
 import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
 import de.upb.cs.swt.delphi.crawler.processing.HermesResults
 
@@ -47,7 +47,6 @@ class ElasticActor(client: ElasticClient) extends Actor with ActorLogging with A
       log.error(ex, s"Stream failed!")
 
     case m : MavenIdentifier =>
-      log.info(s"pushing $m")
       store(m)
       sender() ! Ack
 
@@ -61,6 +60,10 @@ class ElasticActor(client: ElasticClient) extends Actor with ActorLogging with A
 
     case h : HermesResults =>
       store(h)
+      sender() ! Ack
+
+    case e: ProcessingError =>
+      store(e)
       sender() ! Ack
 
     case x => log.warning("Received unknown message: [{}] ", x)

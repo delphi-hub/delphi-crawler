@@ -69,11 +69,17 @@ trait ElasticIndexMaintenance extends AppLogging {
         ObjectField(name = "identifier", properties = identifierFields),
         ObjectField(name = "features", properties = featureList)
       )
+      createIndex(errorIndexName) mapping properties (
+        keywordField("name"),
+        ObjectField(name = "identifier", properties = identifierFields),
+        keywordField("phase"),
+        textField("message")
+      )
     }.await
 
     //Increases maximum number of nested fields
     client.execute {
-      updateSettings(delphi).set(
+      updateSettings(metricIndexName).set(
         "index.mapping.nested_fields.limit", "250"
       )
     }.await

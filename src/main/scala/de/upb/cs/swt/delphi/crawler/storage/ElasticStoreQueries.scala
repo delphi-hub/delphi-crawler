@@ -21,7 +21,7 @@ import com.sksamuel.elastic4s.{ElasticClient, Response}
 import com.sksamuel.elastic4s.requests.indexes.IndexResponse
 import de.upb.cs.swt.delphi.core.model.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
-import de.upb.cs.swt.delphi.crawler.model.MavenArtifactMetadata
+import de.upb.cs.swt.delphi.crawler.model.{MavenArtifactMetadata, ProcessingError}
 import de.upb.cs.swt.delphi.crawler.processing.{HermesAnalyzer, HermesResults}
 import org.joda.time.DateTime
 
@@ -76,6 +76,28 @@ trait ElasticStoreQueries {
             "version" -> m.version.get),
           "discovered" -> DateTime.now())
     }.await
+  }
+
+  def store(error: ProcessingError)(implicit client: ElasticClient, log: LoggingAdapter): Option[Response[IndexResponse]] = {
+    elasticId(error.identifier) match {
+      case Some(id) =>
+        val result = client.execute{
+            indexInto(errorIndexName).fields(
+              "name" -> id,
+              "phase" -> error.phase.toString,
+              "message" -> error.message,
+              "identifier" -> Map(
+                "groupId" -> error.identifier.groupId,
+                "artifactId" -> error.identifier.artifactId,
+                "version" -> error.identifier.version.get
+              ),
+            )
+          }.await
+        Some(result)
+      case None =>
+        log.warning(s"Tried to push error for non-existing identifier: ${error.identifier.toString}.")
+        None
+    }
   }
 
   def store(ident: MavenIdentifier, metadata: MavenArtifactMetadata, published: Option[DateTime])
