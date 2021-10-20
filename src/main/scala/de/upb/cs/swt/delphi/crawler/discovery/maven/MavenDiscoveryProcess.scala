@@ -112,7 +112,11 @@ class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
 
           isValid
         }
-        .runWith(createSinkFromActorRef[MavenArtifact](elasticPool))
+        .alsoTo(createSinkFromActorRef[MavenArtifact](elasticPool))
+        .mapAsync(8)(artifact => (hermesPool ? artifact).mapTo[Try[HermesResults]])
+        .filter(_.isSuccess)
+        .map(_.get)
+        .runWith(createSinkFromActorRef[HermesResults](elasticPool))
 
     Success(0L)
   }

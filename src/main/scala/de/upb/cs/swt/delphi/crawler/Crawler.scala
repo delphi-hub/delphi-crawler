@@ -37,7 +37,7 @@ object Crawler extends App with AppLogging {
   private val configuration = new Configuration()
   implicit val system: ActorSystem = ActorSystem("delphi-crawler")
 
-  OPALLogAdapter.setOpalLoggingEnabled(true)
+  OPALLogAdapter.setOpalLoggingEnabled(false)
   HermesAnalyzer.setConfig()
 
   sys.addShutdownHook({

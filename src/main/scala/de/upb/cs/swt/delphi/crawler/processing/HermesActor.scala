@@ -20,7 +20,7 @@ import akka.actor.{Actor, ActorLogging, ActorRef, Props}
 import de.upb.cs.swt.delphi.core.model.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.model.MavenArtifact
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
 class HermesActor() extends Actor with ActorLogging with OPALFunctionality with HermesFunctionality {
 
@@ -30,6 +30,11 @@ class HermesActor() extends Actor with ActorLogging with OPALFunctionality with 
 
       val hermesResult = Try {
         computeHermesResult(m, reifyProject(m))
+      }
+
+      hermesResult match {
+        case Success(r) => log.info(s"Hermes run successful for ${m.identifier.toUniqueString}")
+        case Failure(ex) => log.error(ex, s"Hermes run failed for ${m.identifier}")
       }
 
       sender() ! hermesResult

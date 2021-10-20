@@ -92,6 +92,12 @@ object ClassStreamReader {
     createProject(source, jarInputStream, projectIsLibrary)
   }
 
+  def createProject(source: URL, is: InputStream, projectIsLibrary: Boolean): Project[URL] = {
+    val jis = new JarInputStream(is)
+
+    createProject(source, jis, projectIsLibrary)
+  }
+
   def createProject(source: URL,
                     jarInputStream: JarInputStream,
                     projectIsLibrary: Boolean): Project[URL] = {
