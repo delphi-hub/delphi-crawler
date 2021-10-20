@@ -15,8 +15,12 @@
 // limitations under the License.
 package de.upb.cs.swt.delphi.crawler
 
-import java.io.InputStream
+import org.apache.commons.io.FileUtils
+
+import java.io.{File, InputStream}
 import java.net.URL
+import java.nio.file.Files
+import scala.util.Try
 
 /**
   * @author Hariharan.
@@ -35,7 +39,18 @@ package object model {
     *
     * @param is pom file stream
     */
-  case class PomFile(is: InputStream)
+  case class PomFile(is: InputStream) {
+
+    def asTempFile(name: String): Try[File] = Try {
+
+      val file = File.createTempFile(name, ".xml")
+      file.deleteOnExit()
+      FileUtils.copyInputStreamToFile(is, file)
+      file
+
+    }
+
+  }
 
   /**
     * Used for identification (Pattern matching) of metadata file

@@ -30,6 +30,7 @@ import org.joda.time.DateTime
   *
   * @author Ben Hermann
   * @author Alexander MacKenzie
+  * @author Johannes Düsing
   */
 trait ElasticStoreQueries {
 

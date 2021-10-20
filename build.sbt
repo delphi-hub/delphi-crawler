@@ -77,13 +77,15 @@ libraryDependencies ++= Seq(
   "de.opal-project" % "hermes_2.12" % opalVersion
 )
 
-val mavenVersion = "3.5.2"
+val mavenVersion = "3.8.3"
 libraryDependencies ++= Seq (
   "org.apache.maven" % "maven-core" % mavenVersion,
   "org.apache.maven" % "maven-model" % mavenVersion,
   "org.apache.maven" % "maven-repository-metadata" % mavenVersion,
   "org.apache.maven" % "maven-resolver-provider" % mavenVersion
 )
+
+libraryDependencies += "com.squareup.tools.build" % "maven-archeologist" % "0.0.10"
 
 libraryDependencies ++= Seq(
   "io.get-coursier" %% "coursier" % "1.0.1",
