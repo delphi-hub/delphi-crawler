@@ -16,15 +16,16 @@
 
 name := "delphi-crawler"
 
-version := "1.0.0-SNAPSHOT"
+version := "0.9.5-SNAPSHOT"
 
 scalaVersion := "2.12.15"
 
 lazy val crawler = (project in file(".")).
   enablePlugins(JavaAppPackaging).
   enablePlugins(DockerPlugin).
-  settings (
-    dockerBaseImage := "delphihub/jre-alpine-openjfx"
+  settings(
+    dockerBaseImage := "delphihub/jre-alpine-openjfx",
+    dockerAlias := com.typesafe.sbt.packager.docker.DockerAlias(None, Some("delphihub"),"delphi-crawler", Some(version.value)),
   ).
   enablePlugins(ScalastylePlugin).
   enablePlugins(AshScriptPlugin).

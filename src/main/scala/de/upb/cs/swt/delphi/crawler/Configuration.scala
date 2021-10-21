@@ -75,7 +75,7 @@ class Configuration {
     case None => defaultElasticSearchHost
 
   }
-  val limit : Int = 0
+  val limit : Int = 100
   val throttle : Throttle = Throttle(5, 1 second, 5, ThrottleMode.shaping)
 
   val tempFileStorage : String = "temp/"

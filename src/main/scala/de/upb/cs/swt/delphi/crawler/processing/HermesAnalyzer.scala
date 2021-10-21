@@ -32,7 +32,6 @@ import scala.collection.JavaConverters.asScalaIteratorConverter
   *
   */
 class HermesAnalyzer(project: Project[URL]) extends HermesCore {
-
   initialize(HermesAnalyzer.temporaryConfigFile())
 
 

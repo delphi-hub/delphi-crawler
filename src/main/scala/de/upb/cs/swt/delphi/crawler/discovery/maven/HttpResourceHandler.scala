@@ -34,7 +34,7 @@ class HttpResourceHandler(root : URI) extends ResourceHandler {
       val target = root.resolve(name).toURL
 
       val conn: HttpURLConnection = target.openConnection.asInstanceOf[HttpURLConnection]
-      conn.setReadTimeout(20.minutes.toMillis.toInt)
+      conn.setReadTimeout(24.hours.toMillis.toInt)
       conn.setRequestMethod("GET")
       conn.setRequestProperty("User-Agent", s"Delphi Maven-Indexer-Reader/${BuildInfo.version}" )
 
