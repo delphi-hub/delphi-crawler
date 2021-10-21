@@ -87,11 +87,6 @@ libraryDependencies ++= Seq (
 
 libraryDependencies += "com.squareup.tools.build" % "maven-archeologist" % "0.0.10"
 
-libraryDependencies ++= Seq(
-  "io.get-coursier" %% "coursier" % "1.0.1",
-  "io.get-coursier" %% "coursier-cache" % "1.0.1"
-)
-
 libraryDependencies += "org.apache.maven.indexer" % "indexer-reader" % "6.0.0"
 libraryDependencies += "org.apache.maven.indexer" % "indexer-core" % "6.0.0"
 
