@@ -56,7 +56,7 @@ libraryDependencies ++= Seq(
 
 libraryDependencies += "org.json4s" %% "json4s-jackson" % "4.0.3"
 
-libraryDependencies += "com.pauldijou" %% "jwt-core" % "1.0.0"
+libraryDependencies += "com.pauldijou" %% "jwt-core" % "5.0.0"
 
 libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3" % Runtime
 

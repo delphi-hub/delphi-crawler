@@ -18,7 +18,11 @@ package de.upb.cs.swt.delphi.crawler.tools
 import de.upb.cs.swt.delphi.crawler.Configuration
 import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim}
 
+import java.time.Clock
+
 object AuthProvider {
+
+  implicit val clock: Clock = Clock.systemUTC()
 
   def generateJwt(validFor: Long = 1, useGenericName: Boolean = false)(implicit configuration: Configuration): String = {
     val claim = JwtClaim()
