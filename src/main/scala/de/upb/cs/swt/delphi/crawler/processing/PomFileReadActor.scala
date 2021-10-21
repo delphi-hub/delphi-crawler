@@ -60,7 +60,7 @@ class PomFileReadActor(configuration: Configuration) extends Actor with ActorLog
 
           val dependencies = pom.getDependencies.asScala.map { d =>
             ArtifactDependency(
-              new MavenIdentifier(Some(configuration.mavenRepoBase.toString), d.getGroupId, d.getVersion, Some(d.getVersion)),
+              new MavenIdentifier(Some(configuration.mavenRepoBase.toString), d.getGroupId, d.getArtifactId, Some(d.getVersion)),
               Option(d.getScope))
           }.toSet
           val metadata = MavenArtifactMetadata(pom.getName,

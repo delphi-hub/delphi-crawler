@@ -20,7 +20,6 @@ import akka.actor.{Actor, ActorLogging, Props}
 import akka.event.LoggingAdapter
 import com.sksamuel.elastic4s.ElasticClient
 import de.upb.cs.swt.delphi.core.model.{Identifier, MavenIdentifier}
-import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
 import de.upb.cs.swt.delphi.crawler.model.{MavenArtifact, ProcessingError}
 import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
 import de.upb.cs.swt.delphi.crawler.processing.HermesResults
@@ -48,10 +47,6 @@ class ElasticActor(client: ElasticClient) extends Actor with ActorLogging with A
 
     case m : MavenIdentifier =>
       store(m)
-      sender() ! Ack
-
-    case g : GitIdentifier =>
-      store(g)
       sender() ! Ack
 
     case MavenArtifact(identifier, _, _, dateOpt, Some(metadata)) =>

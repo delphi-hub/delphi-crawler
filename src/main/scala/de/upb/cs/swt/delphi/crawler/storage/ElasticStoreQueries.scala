@@ -20,7 +20,6 @@ import akka.event.LoggingAdapter
 import com.sksamuel.elastic4s.{ElasticClient, Response}
 import com.sksamuel.elastic4s.requests.indexes.IndexResponse
 import de.upb.cs.swt.delphi.core.model.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
 import de.upb.cs.swt.delphi.crawler.model.{MavenArtifactMetadata, ProcessingError}
 import de.upb.cs.swt.delphi.crawler.processing.{HermesAnalyzer, HermesResults}
 import org.joda.time.DateTime
@@ -51,17 +50,6 @@ trait ElasticStoreQueries {
         }.await)
       case None => log.warning(s"Tried to push hermes results for non-existing identifier: ${h.identifier}."); None
     }
-  }
-
-  def store(g: GitIdentifier)(implicit client: ElasticClient, log: LoggingAdapter): Response[IndexResponse] = {
-    log.info("Pushing new git identifier to elastic: [{}]", g)
-    client.execute {
-      indexInto(identifierIndexName).fields("name" -> (g.repoUrl + "/" + g.commitId),
-        "source" -> "Git",
-        "identifier" -> Map(
-          "repoUrl" -> g.repoUrl,
-          "commitId" -> g.commitId))
-    }.await
   }
 
   def store(m: MavenIdentifier)(implicit client: ElasticClient, log: LoggingAdapter): Response[IndexResponse] = {

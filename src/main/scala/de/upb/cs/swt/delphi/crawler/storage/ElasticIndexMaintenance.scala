@@ -27,23 +27,18 @@ trait ElasticIndexMaintenance extends AppLogging {
 
   import com.sksamuel.elastic4s.ElasticDsl._
 
+  private val identifierFields = Seq(
+    textField("groupId"),
+    textField("artifactId"),
+    keywordField("version")
+  )
+
 
   def createDelphiIndex(configuration: Configuration)(implicit system: ActorSystem): Try[Configuration] = {
     log.warning("Could not find Delphi index. Creating it...")
 
     val client = ElasticHelper.buildElasticClient(configuration)
     val featureList = ElasticFeatureListMapping.getMapAsSeq
-
-    val identifierFields = Seq(
-      //Git
-      textField("repoUrl"),
-      keywordField("commitId"),
-
-      //Maven
-      textField("groupId"),
-      textField("artifactId"),
-      keywordField("version")
-    )
 
     val f = client.execute {
       createIndex(identifierIndexName) mapping properties (
