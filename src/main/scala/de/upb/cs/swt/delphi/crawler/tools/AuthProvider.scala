@@ -15,8 +15,6 @@
 // limitations under the License.
 package de.upb.cs.swt.delphi.crawler.tools
 
-import java.time.Clock
-
 import de.upb.cs.swt.delphi.crawler.Configuration
 import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim}
 
