@@ -13,27 +13,19 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-package de.upb.cs.swt.delphi.crawler.authorization
+package de.upb.cs.swt.delphi.crawler.tools
 
-import java.time.Clock
-
+import akka.actor.ActorSystem
+import com.sksamuel.elastic4s.ElasticClient
+import com.sksamuel.elastic4s.akka.{AkkaHttpClient, AkkaHttpClientSettings}
 import de.upb.cs.swt.delphi.crawler.Configuration
-import pdi.jwt.{Jwt, JwtAlgorithm, JwtClaim}
 
-object AuthProvider {
+object ElasticHelper {
 
-  implicit val clock: Clock = Clock.systemUTC
-
-  def generateJwt(validFor: Long = 1, useGenericName: Boolean = false) (implicit configuration: Configuration): String = {
-    val claim = JwtClaim()
-      .issuedNow
-      .expiresIn(validFor * 60)
-      .startsNow
-      . + ("user_id", if (useGenericName) configuration.instanceName else s"${configuration.instanceId.get}")
-      . + ("user_type", "Component")
-
-
-    Jwt.encode(claim, configuration.jwtSecretKey, JwtAlgorithm.HS256)
+  def buildElasticClient(configuration: Configuration)
+                        (implicit system: ActorSystem): ElasticClient = {
+    val httpClientSettings = AkkaHttpClientSettings(Seq(configuration.elasticsearchClientUri))
+    ElasticClient(AkkaHttpClient(httpClientSettings))
   }
 
 }

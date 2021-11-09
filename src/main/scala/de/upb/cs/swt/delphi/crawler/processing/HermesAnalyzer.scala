@@ -16,11 +16,14 @@
 
 package de.upb.cs.swt.delphi.crawler.processing
 
+import de.upb.cs.swt.delphi.crawler.processing.HermesAnalyzer.initialize
+
 import java.io._
 import java.net.URL
-
 import org.opalj.br.analyses.Project
 import org.opalj.hermes._
+
+import scala.collection.JavaConverters.asScalaIteratorConverter
 
 /**
   * Custom Hermes runner for Delphi
@@ -29,19 +32,20 @@ import org.opalj.hermes._
   *
   */
 class HermesAnalyzer(project: Project[URL]) extends HermesCore {
+  initialize(HermesAnalyzer.temporaryConfigFile())
 
 
-  override def updateProjectData(f: => Unit): Unit = Hermes.synchronized {
+  override def updateProjectData(f: => Unit): Unit = HermesAnalyzer.synchronized {
     f
   }
 
-  override def reportProgress(f: => Double): Unit = Hermes.synchronized {
+  override def reportProgress(f: => Double): Unit = HermesAnalyzer.synchronized {
     f
   }
 
   def analyzeProject(): Iterator[(FeatureQuery, TraversableOnce[Feature[URL]])] = {
     for {
-      projectFeatures <- featureMatrix.iterator
+      projectFeatures <- featureMatrix.iterator().asScala
       projectConfiguration = projectFeatures.projectConfiguration
       (featureQuery, features) <- projectFeatures.featureGroups.par
     } yield {
@@ -58,7 +62,7 @@ class HermesAnalyzer(project: Project[URL]) extends HermesCore {
 
 
   override lazy val registeredQueries: List[Query] = {
-    queries.values.flatten.map { s => Query(s, true) }.toList
+    queries.values.flatten.map { s => new Query(s, true) }.toList
   }
 
   val VERY_SLOW = 'VERY_SLOW
@@ -98,7 +102,7 @@ class HermesAnalyzer(project: Project[URL]) extends HermesCore {
 object HermesAnalyzer extends HermesCore {
 
   def setConfig(): Unit = {
-    var internalConfigurationFile = temporaryConfigFile
+    var internalConfigurationFile = temporaryConfigFile()
     initialize(internalConfigurationFile)
   }
 
@@ -116,11 +120,11 @@ object HermesAnalyzer extends HermesCore {
     tempConfigFile
   }
 
-  override def updateProjectData(f: => Unit): Unit = Hermes.synchronized {
+  override def updateProjectData(f: => Unit): Unit = HermesAnalyzer.synchronized {
     f
   }
 
-  override def reportProgress(f: => Double): Unit = Hermes.synchronized {
+  override def reportProgress(f: => Double): Unit = HermesAnalyzer.synchronized {
     f
   }
 

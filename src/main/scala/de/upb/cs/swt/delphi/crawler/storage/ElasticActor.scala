@@ -18,11 +18,10 @@ package de.upb.cs.swt.delphi.crawler.storage
 
 import akka.actor.{Actor, ActorLogging, Props}
 import akka.event.LoggingAdapter
-import com.sksamuel.elastic4s.http.ElasticClient
-import de.upb.cs.swt.delphi.crawler.Identifier
-import de.upb.cs.swt.delphi.crawler.discovery.git.GitIdentifier
+import com.sksamuel.elastic4s.ElasticClient
+import de.upb.cs.swt.delphi.core.model.{Identifier, MavenIdentifier}
+import de.upb.cs.swt.delphi.crawler.model.{MavenArtifact, ProcessingError}
 import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
-import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.processing.HermesResults
 
 /**
@@ -35,26 +34,33 @@ class ElasticActor(client: ElasticClient) extends Actor with ActorLogging with A
   private implicit val l : LoggingAdapter = log
 
   override def receive: PartialFunction[Any, Unit] = {
+
     case StreamInitialized =>
       log.info(s"Stream initialized!")
       sender() ! Ack
+
     case StreamCompleted =>
       log.info(s"Stream completed!")
+
     case StreamFailure(ex) =>
       log.error(ex, s"Stream failed!")
-    case m : MavenIdentifier => {
-      log.info(s"pushing $m")
+
+    case m : MavenIdentifier =>
       store(m)
       sender() ! Ack
-    }
-    case g : GitIdentifier => {
-      store(g)
+
+    case MavenArtifact(identifier, _, _, dateOpt, Some(metadata)) =>
+      store(identifier, metadata, dateOpt)
       sender() ! Ack
-    }
-    case h : HermesResults => {
+
+    case h : HermesResults =>
       store(h)
       sender() ! Ack
-    }
+
+    case e: ProcessingError =>
+      store(e)
+      sender() ! Ack
+
     case x => log.warning("Received unknown message: [{}] ", x)
   }
 

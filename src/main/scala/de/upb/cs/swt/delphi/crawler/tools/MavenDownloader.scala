@@ -14,13 +14,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package de.upb.cs.swt.delphi.crawler.preprocessing
+package de.upb.cs.swt.delphi.crawler.tools
 
-import java.io.BufferedInputStream
+import de.upb.cs.swt.delphi.core.model.MavenIdentifier
+import de.upb.cs.swt.delphi.crawler.discovery.maven.HttpResourceHandler
+import de.upb.cs.swt.delphi.crawler.model.{JarFile, MetaFile, PomFile}
+
 import java.net.{URI, URL}
 
-import de.upb.cs.swt.delphi.crawler.discovery.maven.{HttpResourceHandler, MavenIdentifier}
-
+/**
+  * Http downloader that does not require any actor system, but instead uses Apaches Maven Resource interface to
+  * process HTTP requests. Only used in tests.
+  *
+  * @param identifier Identifier to download
+  */
 class MavenDownloader(identifier: MavenIdentifier) {
   val http = new HttpResourceHandler(constructArtifactBaseUri())
   val pomResource = http.locate(pomFilename(identifier))
@@ -32,7 +39,7 @@ class MavenDownloader(identifier: MavenIdentifier) {
     * @return Base URI
     */
   def constructArtifactBaseUri(): URI =
-    new URI(identifier.repository)
+    new URI(identifier.repository.get)
       .resolve(identifier.groupId.replace('.', '/') + "/")
       .resolve(identifier.artifactId + "/")
       // .resolve(identifier.version + "/")
@@ -41,10 +48,10 @@ class MavenDownloader(identifier: MavenIdentifier) {
     constructArtifactBaseUri().resolve(jarFilename(identifier)).toURL
 
   def pomFilename(identifier: MavenIdentifier): String =
-    identifier.version + "/" + identifier.artifactId + "-" + identifier.version + ".pom"
+    identifier.version.get + "/" + identifier.artifactId + "-" + identifier.version.get + ".pom"
 
   def jarFilename(identifier: MavenIdentifier): String =
-    identifier.version + "/" + identifier.artifactId + "-" + identifier.version + ".jar"
+    identifier.version.get + "/" + identifier.artifactId + "-" + identifier.version.get + ".jar"
 
   def downloadJar(): JarFile = {
     JarFile(jarResource.read(), constructArtifactUrl())

@@ -16,27 +16,40 @@
 
 package de.upb.cs.swt.delphi.crawler.processing
 
-import java.net.URL
-
 import akka.actor.{Actor, ActorLogging, ActorRef, Props}
-import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.preprocessing.MavenArtifact
-import org.opalj.br.analyses.Project
+import de.upb.cs.swt.delphi.core.model.MavenIdentifier
+import de.upb.cs.swt.delphi.crawler.model.{MavenArtifact, ProcessingPhaseFailedException}
+import de.upb.cs.swt.delphi.crawler.tools.ClassStreamReader
 
-import scala.util.Try
+import scala.util.{Failure, Success, Try}
 
-class HermesActor() extends Actor with ActorLogging with OPALFunctionality with HermesFunctionality {
+class HermesActor() extends Actor with ActorLogging with HermesFunctionality {
 
   def receive: PartialFunction[Any, Unit] = {
     case m : MavenArtifact => {
-      log.info(s"Starting analysis for $m")
+      log.info(s"Starting analysis for ${m.identifier.toString}")
 
       val hermesResult = Try {
-        computeHermesResult(m, reifyProject(m))
+        computeHermesResult(m, initializeOpalProject(m))
       }
 
-      sender() ! hermesResult
+      hermesResult match {
+        case Success(r) =>
+          sender() ! hermesResult
+        case Failure(ex) =>
+          log.error(ex, s"Hermes run failed for ${m.identifier}")
+          sender() ! Failure(ProcessingPhaseFailedException(m.identifier, ex))
+      }
+
+
     }
+  }
+
+  private def initializeOpalProject(artifact: MavenArtifact) = {
+    val project = ClassStreamReader.createProject(artifact.identifier.toJarLocation.toURL,
+      artifact.jarFile.get.is, true)
+    Try(artifact.jarFile.get.is.close())
+    project
   }
 }
 

@@ -17,7 +17,6 @@
 package de.upb.cs.swt.delphi.crawler.instancemanagement
 
 import java.net.InetAddress
-
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model._
@@ -25,8 +24,8 @@ import akka.http.scaladsl.model.headers.RawHeader
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import akka.util.ByteString
-import de.upb.cs.swt.delphi.crawler.authorization.AuthProvider
 import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceEnums.{ComponentType, InstanceState}
+import de.upb.cs.swt.delphi.crawler.tools.AuthProvider
 import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration, Crawler}
 
 import scala.concurrent.duration._
@@ -39,7 +38,6 @@ object InstanceRegistry extends InstanceJsonSupport with AppLogging
 
   implicit val system : ActorSystem = Crawler.system
   implicit val ec  : ExecutionContext = system.dispatcher
-  implicit val materializer : ActorMaterializer = Crawler.materializer
 
 
   lazy val instanceIdFromEnv : Option[Long] = Try[Long](sys.env("INSTANCE_ID").toLong).toOption

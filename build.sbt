@@ -18,7 +18,7 @@ name := "delphi-crawler"
 
 version := "0.9.5-SNAPSHOT"
 
-scalaVersion := "2.12.11"
+scalaVersion := "2.12.15"
 
 lazy val crawler = (project in file(".")).
   enablePlugins(JavaAppPackaging).
@@ -38,14 +38,11 @@ lazy val crawler = (project in file(".")).
 
 scalastyleConfig := baseDirectory.value / "project" / "scalastyle-config.xml"
 
-//mainClass in(Compile, run) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
-//mainClass in(Compile, packageBin) := Some("de.upb.cs.swt.delphi.crawler.Crawler")
-//mainClass in Compile := Some("de.upb.cs.swt.delphi.crawler.Crawler")
+Compile / run / mainClass := Some("de.upb.cs.swt.delphi.crawler.Crawler")
+Compile / packageBin / mainClass := Some("de.upb.cs.swt.delphi.crawler.Crawler")
+Compile / mainClass := Some("de.upb.cs.swt.delphi.crawler.Crawler")
 
-
-val akkaVersion = "2.6.4"
-
-val akkaHttpVersion = "10.1.11"
+val akkaVersion = "2.6.16"
 
 libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-actor" % akkaVersion,
@@ -53,71 +50,48 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-stream" % akkaVersion,
   "com.typesafe.akka" %% "akka-stream-testkit" % akkaVersion % Test,
   "com.typesafe.akka" %% "akka-slf4j" % akkaVersion,
-  "com.typesafe.akka" %% "akka-http-spray-json" % akkaHttpVersion,
-  "com.typesafe.akka" %% "akka-http" % akkaHttpVersion
+  "com.typesafe.akka" %% "akka-http-spray-json" % "10.2.6",
+  "com.typesafe.akka" %% "akka-http" % "10.2.6"
 )
 
-libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.6.7"
-libraryDependencies += "com.lihaoyi" %% "fansi" % "0.2.7"
-libraryDependencies += "org.fusesource.jansi" % "jansi" % "1.18"
-libraryDependencies += "com.googlecode.lanterna" % "lanterna" % "3.0.3"
-libraryDependencies += "com.pauldijou" %% "jwt-core" % "4.2.0"
+libraryDependencies += "org.json4s" %% "json4s-jackson" % "4.0.3"
 
-val elastic4sVersion = "6.7.4"
+libraryDependencies += "com.pauldijou" %% "jwt-core" % "5.0.0"
+
+libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3" % Runtime
+
+val elastic4sVersion = "7.14.1"
 libraryDependencies ++= Seq(
   "com.sksamuel.elastic4s" %% "elastic4s-core" % elastic4sVersion,
-
-  // for the http client
-
-  "com.sksamuel.elastic4s" %% "elastic4s-http" % elastic4sVersion
-    //https://snyk.io/vuln/SNYK-JAVA-ORGAPACHEHTTPCOMPONENTS-31517
-    exclude("org.apache.httpcomponents", "httpclient"),
-
-  "org.apache.httpcomponents" % "httpclient" % "4.5.10",
-
-  // if you want to use reactive streams
   "com.sksamuel.elastic4s" %% "elastic4s-http-streams" % elastic4sVersion,
+  "com.sksamuel.elastic4s" %% "elastic4s-client-akka" % elastic4sVersion,
 
-  // testing
-  "com.sksamuel.elastic4s" %% "elastic4s-testkit" % elastic4sVersion % "test",
-  "com.sksamuel.elastic4s" %% "elastic4s-embedded" % elastic4sVersion % "test"
+  "com.sksamuel.elastic4s" %% "elastic4s-testkit" % elastic4sVersion % "test"
 )
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
-val opalVersion = "1.0.0"
+val opalVersion = "4.0.0"
 libraryDependencies ++= Seq(
-  "de.opal-project" % "common_2.12" % opalVersion
-    exclude("com.fasterxml.jackson.datatype", "jackson-datatype-jsr310"),
-  //https://snyk.io/vuln/SNYK-JAVA-COMFASTERXMLJACKSONDATATYPE-173759
-  "com.fasterxml.jackson.datatype" % "jackson-datatype-jsr310" % "2.9.8",
-
-  "de.opal-project" % "opal-developer-tools_2.12" % opalVersion
-    exclude("com.google.protobuf", "protobuf-java"),
-  "com.google.protobuf" % "protobuf-java" % "3.4.0"
+  "de.opal-project" % "common_2.12" % opalVersion,
+  "de.opal-project" % "framework_2.12" % opalVersion,
+  "de.opal-project" % "hermes_2.12" % opalVersion
 )
 
-val mavenVersion = "3.5.2"
-libraryDependencies ++= Seq(
+val mavenVersion = "3.8.3"
+libraryDependencies ++= Seq (
   "org.apache.maven" % "maven-core" % mavenVersion,
   "org.apache.maven" % "maven-model" % mavenVersion,
   "org.apache.maven" % "maven-repository-metadata" % mavenVersion,
   "org.apache.maven" % "maven-resolver-provider" % mavenVersion
 )
 
-libraryDependencies ++= Seq(
-  "io.get-coursier" %% "coursier" % "1.0.1",
-  "io.get-coursier" %% "coursier-cache" % "1.0.1"
-)
+libraryDependencies += "com.squareup.tools.build" % "maven-archeologist" % "0.0.10"
 
 libraryDependencies += "org.apache.maven.indexer" % "indexer-reader" % "6.0.0"
-libraryDependencies += "org.apache.maven.indexer" % "indexer-core" % "6.0.0"
+libraryDependencies += "org.apache.maven.indexer" % "indexer-core" % "6.0.0" exclude("com.google.guava", "guava")
 
-libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
+libraryDependencies += "de.upb.cs.swt.delphi" %% "delphi-core" % "0.9.2"
 
-// Pinning secure versions of insecure transitive libraryDependencies
-// Please update when updating dependencies above (including Play plugin)
-libraryDependencies ++= Seq(
-  "com.google.guava" % "guava" % "25.1-jre",
-  "com.fasterxml.jackson.core" % "jackson-databind" % "2.10.2"
-)
+// Pinning secure version of guava, otherwise indexer-core:6.0.0 includes a vulnerable one
+libraryDependencies += "com.google.guava" % "guava" % "24.1.1-jre"

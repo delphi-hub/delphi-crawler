@@ -16,16 +16,19 @@
 
 package de.upb.cs.swt.delphi.crawler.storage
 
-import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.http.search.SearchResponse
-import com.sksamuel.elastic4s.http.{ElasticClient, RequestSuccess}
-import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
+import com.sksamuel.elastic4s.{ElasticClient, RequestSuccess}
+import com.sksamuel.elastic4s.requests.searches.SearchResponse
+import de.upb.cs.swt.delphi.core.model.MavenIdentifier
+
 
 /**
   * Helps to determine if an artifact already exists in the elasticsearch database.
   * @author Ben Hermann
   */
 trait ArtifactExistsQuery {
+
+  import com.sksamuel.elastic4s.ElasticDsl._
+
   /**
     * Determines if a maven identifier was already inserted into the elasticsearch database.
     * @param identifier
@@ -34,11 +37,9 @@ trait ArtifactExistsQuery {
     */
   def exists(identifier : MavenIdentifier)(implicit client : ElasticClient) : Boolean = {
     client.execute {
-      searchWithType(delphiProjectType) query must (
-        matchQuery("name", identifier.toUniqueString)
-      )
+      search(identifierIndexName) query must(idsQuery(identifier.toUniqueString))
     }.await match {
-      case RequestSuccess(_,_,_,SearchResponse(_, false, false, _, _, _, _, hits)) => (hits.total > 0)
+      case RequestSuccess(_,_,_,SearchResponse(_, false, false, _, _, _, _, hits)) => hits.hits.length > 0
       case _ => false
     }
   }

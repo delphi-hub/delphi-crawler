@@ -17,58 +17,64 @@
 package de.upb.cs.swt.delphi.crawler.storage
 
 import akka.actor.ActorSystem
-import com.sksamuel.elastic4s.analyzers.KeywordAnalyzer
-import com.sksamuel.elastic4s.http.ElasticClient
-import com.sksamuel.elastic4s.http.ElasticDsl._
+import com.sksamuel.elastic4s.fields.ObjectField
+import de.upb.cs.swt.delphi.crawler.tools.ElasticHelper
 import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration}
 
 import scala.util.{Success, Try}
 
 trait ElasticIndexMaintenance extends AppLogging {
 
+  import com.sksamuel.elastic4s.ElasticDsl._
+
+  private val identifierFields = Seq(
+    textField("groupId"),
+    textField("artifactId"),
+    keywordField("version")
+  )
+
 
   def createDelphiIndex(configuration: Configuration)(implicit system: ActorSystem): Try[Configuration] = {
     log.warning("Could not find Delphi index. Creating it...")
 
-    val client = ElasticClient(configuration.elasticsearchClientUri)
+    val client = ElasticHelper.buildElasticClient(configuration)
     val featureList = ElasticFeatureListMapping.getMapAsSeq
 
-    val identifierFields = Seq(
-      //Git
-      textField("repoUrl"),
-      keywordField("commitId"),
-
-      //Maven
-      textField("groupId"),
-      textField("artifactId"),
-      keywordField("version")
-    )
-
     val f = client.execute {
-      createIndex(delphi) mappings (
-        mapping(project) as(
-          keywordField("name"),
-          keywordField("source"),
-          keywordField("language"),
-          dateField("discovered"),
-
-          objectField("identifier") fields identifierFields,
-
-          nestedField("calls") fields Seq(
-            keywordField("name"),
-            objectField("identifier") fields identifierFields,
-            textField("methods") analyzer KeywordAnalyzer
-          ),
-
-          objectField("features") fields featureList
-        )
-        )
-
+      createIndex(identifierIndexName) mapping properties (
+        keywordField("name"),
+        keywordField("source"),
+        dateField("discovered"),
+        ObjectField(name = "identifier", properties = identifierFields)
+      )
+      createIndex(metadataIndexName) mapping properties (
+        keywordField("name"),
+        ObjectField(name = "identifier", properties = identifierFields),
+        ObjectField(name = "parent", properties = identifierFields),
+        keywordField("packaging"),
+        textField("description"),
+        textField("licenses"),
+        textField("issueManagement"),
+        textField("developers"),
+        nestedField("dependencies").fields( identifierFields ++ Seq(keywordField("scope")) ),
+        dateField("published")
+      )
+      createIndex(metricIndexName) mapping properties (
+        keywordField("name"),
+        ObjectField(name = "identifier", properties = identifierFields),
+        ObjectField(name = "features", properties = featureList)
+      )
+      createIndex(errorIndexName) mapping properties (
+        keywordField("name"),
+        ObjectField(name = "identifier", properties = identifierFields),
+        keywordField("phase"),
+        textField("message")
+      )
     }.await
 
     //Increases maximum number of nested fields
     client.execute {
-      updateSettings(delphi).set(
+      updateSettings(metricIndexName).set(
         "index.mapping.nested_fields.limit", "250"
       )
     }.await

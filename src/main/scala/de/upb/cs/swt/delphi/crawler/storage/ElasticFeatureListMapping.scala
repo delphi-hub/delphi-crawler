@@ -16,13 +16,14 @@
 
 package de.upb.cs.swt.delphi.crawler.storage
 
-import com.sksamuel.elastic4s.mappings.FieldDefinition
-import com.sksamuel.elastic4s.http.ElasticDsl._
+import com.sksamuel.elastic4s.fields.ElasticField
 
 object ElasticFeatureListMapping {
 
+  import com.sksamuel.elastic4s.ElasticDsl._
+
   //Returns a Seq object of FieldDefinitions that defines all fields in the feature mapping
-  def getMapAsSeq: Seq[FieldDefinition] =
+  def getMapAsSeq: Seq[ElasticField] =
     featureMap.toSeq.map{case (name, fun) => fun(name)}
 
   //Stores the mapping for the features returned by Hermes as a Map of feature names to field types
@@ -30,7 +31,7 @@ object ElasticFeatureListMapping {
   //  in that any surrounding double quotes are stripped and any newlines are replaced with spaces
   /*TODO: Change mapping types to minimize search times, and confirm that the results returned by Hermes do not exceed
     TODO:      the maximum values of each of these field types*/
-  private val featureMap: Map[String, String => FieldDefinition] = Map[String, String => FieldDefinition](
+  private val featureMap: Map[String, String => ElasticField] = Map[String, String => ElasticField](
     "ProjectPackages" -> intField,
     "⟨SizeOfInheritanceTree⟩" -> doubleField,
     "ProjectFields" -> intField,

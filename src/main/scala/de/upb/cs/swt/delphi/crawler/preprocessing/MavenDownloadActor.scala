@@ -17,47 +17,60 @@
 package de.upb.cs.swt.delphi.crawler.preprocessing
 
 import akka.actor.{Actor, ActorLogging, ActorSystem, Props}
-import de.upb.cs.swt.delphi.crawler.discovery.maven.MavenIdentifier
-import de.upb.cs.swt.delphi.crawler.tools.HttpDownloader
+import de.upb.cs.swt.delphi.core.model.MavenIdentifier
+import de.upb.cs.swt.delphi.crawler.model.{JarFile, MavenArtifact, PomFile, ProcessingPhaseFailedException}
+import de.upb.cs.swt.delphi.crawler.tools.{HttpDownloader, HttpException}
+import org.joda.time.format.DateTimeFormat
 
-import scala.util.{Failure, Success}
+import java.util.Locale
+import scala.util.{Failure, Success, Try}
 
 class MavenDownloadActor extends Actor with ActorLogging {
+
+  private val datePattern =
+    DateTimeFormat.forPattern("E, dd MMM yyyy HH:mm:ss zzz").withLocale(Locale.ENGLISH)
+
+
   override def receive: Receive = {
-    case m : MavenIdentifier => {
+
+    case mavenIdent: MavenIdentifier =>
       implicit val system : ActorSystem = context.system
 
       val downloader = new HttpDownloader
 
-      val jarStream = downloader.downloadFromUri(m.toJarLocation.toString())
-      val pomStream = downloader.downloadFromUri(m.toPomLocation.toString())
+      downloader.downloadFromUriWithHeaders(mavenIdent.toPomLocation.toString) match {
 
-      jarStream match {
-        case Success(jar) => {
-          pomStream match {
-            case Success(pom) => {
-              log.info(s"Downloaded $m")
-              sender() ! Success(MavenArtifact(m, JarFile(jar, m.toJarLocation.toURL), PomFile(pom)))
-            }
-            case Failure(e) => {
-              // TODO: push error to actor
-              log.warning(s"Failed pom download for $m")
-              sender() ! Failure(e)
-            }
+        case Success((pomStream, pomHeaders)) =>
+
+          // Extract and parse publication date from header
+          val pomPublicationDate = pomHeaders
+            .find( _.lowercaseName().equals("last-modified") )
+            .map( header => Try(datePattern.parseDateTime(header.value())) ) match {
+            case Some(Success(date)) => Some(date)
+            case _ => None
           }
-        }
-        case Failure(e) => {
-          // TODO: push error to actor
-          log.warning(s"Failed jar download for $m")
-          sender() ! Failure(e)
-        }
+
+          downloader.downloadFromUri(mavenIdent.toJarLocation.toString) match {
+            case Success(jarStream) =>
+              sender() ! Success(MavenArtifact(mavenIdent, PomFile(pomStream),
+                Some(JarFile(jarStream, mavenIdent.toJarLocation.toURL)), pomPublicationDate, None))
+            case Failure(ex@HttpException(code)) if code.intValue() == 404 =>
+              log.warning(s"No JAR file could be located for ${mavenIdent.toUniqueString}")
+              sender() ! Success(MavenArtifact(mavenIdent, PomFile(pomStream), None, pomPublicationDate, None))
+            case Failure(ex) =>
+              log.error(ex, s"Failed to download JAR file for ${mavenIdent.toUniqueString}")
+              sender() ! Failure(ProcessingPhaseFailedException(mavenIdent, ex))
+          }
+        case Failure(ex@HttpException(code)) if code.intValue() == 404 =>
+          log.error(s"Failed to download POM file for ${mavenIdent.toUniqueString}")
+          sender() ! Failure(ProcessingPhaseFailedException(mavenIdent, ex))
+        case Failure(ex) =>
+          log.error(ex, s"Failed to download POM file for ${mavenIdent.toUniqueString}")
+          sender() ! Failure(ProcessingPhaseFailedException(mavenIdent, ex))
       }
-
-
     }
-  }
 }
 object MavenDownloadActor {
-  def props = Props(new MavenDownloadActor)
+  def props: Props = Props(new MavenDownloadActor)
 }
 

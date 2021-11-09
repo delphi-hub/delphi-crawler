@@ -16,25 +16,30 @@
 
 package de.upb.cs.swt.delphi.crawler.discovery.maven
 
+import akka.NotUsed
 import akka.actor.{ActorRef, ActorSystem}
 import akka.event.LoggingAdapter
 import akka.pattern.ask
-import akka.routing.SmallestMailboxPool
-import akka.stream.{ActorMaterializer, ThrottleMode}
-import akka.stream.scaladsl.{Keep, Sink}
+import akka.routing.{RoundRobinPool, SmallestMailboxPool}
+import akka.stream.scaladsl.{Sink, Source}
 import akka.util.Timeout
-import com.sksamuel.elastic4s.http.ElasticClient
-import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration}
+import com.sksamuel.elastic4s.ElasticApi.RichFuture
+import com.sksamuel.elastic4s.ElasticClient
+import de.upb.cs.swt.delphi.core.model.MavenIdentifier
 import de.upb.cs.swt.delphi.crawler.control.Phase
 import de.upb.cs.swt.delphi.crawler.control.Phase.Phase
-import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
-import de.upb.cs.swt.delphi.crawler.preprocessing.{MavenArtifact, MavenDownloadActor}
-import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesResults}
+import de.upb.cs.swt.delphi.crawler.model.ProcessingPhase.ProcessingPhase
+import de.upb.cs.swt.delphi.crawler.model.{MavenArtifact, ProcessingError, ProcessingPhase, ProcessingPhaseFailedException}
+import de.upb.cs.swt.delphi.crawler.preprocessing.MavenDownloadActor
+import de.upb.cs.swt.delphi.crawler.processing.{HermesActor, HermesResults, PomFileReadActor}
 import de.upb.cs.swt.delphi.crawler.storage.ArtifactExistsQuery
-import de.upb.cs.swt.delphi.crawler.tools.NotYetImplementedException
+import de.upb.cs.swt.delphi.crawler.tools.ActorStreamIntegrationSignals.{Ack, StreamCompleted, StreamFailure, StreamInitialized}
+import de.upb.cs.swt.delphi.crawler.tools.{ElasticHelper, NotYetImplementedException}
+import de.upb.cs.swt.delphi.crawler.{AppLogging, Configuration}
 
 import scala.collection.mutable
 import scala.concurrent.duration._
+import scala.language.postfixOps
 import scala.util.{Failure, Success, Try}
 
 
@@ -56,17 +61,56 @@ class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
 
   private val seen = mutable.HashSet[MavenIdentifier]()
 
-  val downloaderPool = system.actorOf(SmallestMailboxPool(8).props(MavenDownloadActor.props))
-  val hermesPool = system.actorOf(SmallestMailboxPool(configuration.hermesActorPoolSize).props(HermesActor.props()))
+  val downloaderPool: ActorRef =
+    system.actorOf(SmallestMailboxPool(configuration.downloadActorPoolSize).props(MavenDownloadActor.props))
+
+  val pomReaderPool: ActorRef =
+    system.actorOf(RoundRobinPool(configuration.pomReadActorPoolSize).props(PomFileReadActor.props(configuration)))
+
+  val hermesPool: ActorRef =
+    system.actorOf(SmallestMailboxPool(configuration.hermesActorPoolSize).props(HermesActor.props()))
 
   override def phase: Phase = Phase.Discovery
 
   override def start: Try[Long] = {
-    implicit val materializer = ActorMaterializer()
     implicit val logger: LoggingAdapter = log
-    implicit val client = ElasticClient(configuration.elasticsearchClientUri)
+    implicit val client: ElasticClient =
+      ElasticHelper.buildElasticClient(configuration)
 
-    var filteredSource =
+    val identifierSource = buildThrottledSource()
+
+    implicit val timeout: Timeout = Timeout(5 minutes)
+
+    val preprocessing = buildPreprocessingPipeline(identifierSource)
+
+    preprocessing
+      .mapAsync(8)(artifact => (pomReaderPool ? artifact).mapTo[MavenArtifact])
+      .filter{ artifact =>
+
+        if(artifact.metadata.isEmpty){
+          (elasticPool ? new ProcessingError(artifact.identifier, ProcessingPhase.PomProcessing,
+          "Unexpected error while processing POM file.", None)).await
+          false
+        } else if(!checkValidPackaging(artifact)) {
+          log.error(s"Invalid packaging for ${artifact.identifier.toUniqueString}")
+          (elasticPool ? new ProcessingError(artifact.identifier, ProcessingPhase.PomProcessing,
+            "JAR file not found although packaging is JAR", None)).await
+          false
+        } else {
+          true
+        }
+      }
+      .alsoTo(storageSink[MavenArtifact]())
+      .mapAsync(8)(artifact => (hermesPool ? artifact).mapTo[Try[HermesResults]])
+      .filter(isSuccessAndReportFailure(_, ProcessingPhase.MetricsExtraction))
+      .map(_.get)
+      .runWith(storageSink[HermesResults]())
+
+    Success(0L)
+  }
+
+  private def buildThrottledSource()(implicit log: LoggingAdapter, client: ElasticClient): Source[MavenIdentifier, NotUsed] = {
+    var source =
       createSource(configuration.mavenRepoBase)
         .filter(m => {
           val before = seen.contains(m)
@@ -76,31 +120,38 @@ class MavenDiscoveryProcess(configuration: Configuration, elasticPool: ActorRef)
         .filter(m => !exists(m)) // ask elastic
         .throttle(configuration.throttle.element, configuration.throttle.per, configuration.throttle.maxBurst, configuration.throttle.mode)
 
-
     if (configuration.limit > 0) {
-      filteredSource = filteredSource.take(configuration.limit)
+      source = source.take(configuration.limit)
     }
 
-    implicit val timeout = Timeout(5 minutes)
-
-    val preprocessing =
-      filteredSource
-        .alsoTo(createSinkFromActorRef[MavenIdentifier](elasticPool))
-        .mapAsync(8)(identifier => (downloaderPool ? identifier).mapTo[Try[MavenArtifact]])
-        .filter(artifact => artifact.isSuccess)
-        .map(artifact => artifact.get)
-
-    val finalizer =
-      preprocessing
-        .mapAsync(configuration.hermesActorPoolSize)(artifact => (hermesPool ? artifact).mapTo[Try[HermesResults]])
-        .filter(results => results.isSuccess)
-        .map(results => results.get)
-        .alsoTo(createSinkFromActorRef[HermesResults](elasticPool))
-        .to(Sink.ignore)
-        .run()
-
-    Success(0L)
+    source
   }
+
+  private def buildPreprocessingPipeline(source: Source[MavenIdentifier, _])(implicit timeout: Timeout): Source[MavenArtifact, _] = {
+    source
+      .alsoTo(storageSink[MavenIdentifier]())
+      .mapAsync(8)(identifier => (downloaderPool ? identifier).mapTo[Try[MavenArtifact]])
+      .filter(isSuccessAndReportFailure(_, ProcessingPhase.Downloading))
+      .map(artifact => artifact.get)
+  }
+
+  private def checkValidPackaging(artifact: MavenArtifact): Boolean = {
+    artifact.jarFile.isDefined ||
+      artifact.metadata.isDefined && !artifact.metadata.get.packaging.equalsIgnoreCase("jar")
+  }
+
+  private def isSuccessAndReportFailure[T](element: Try[T], processingPhase: ProcessingPhase)
+                                          (implicit timeout: Timeout) = element match {
+    case Failure(ProcessingPhaseFailedException(ident, cause)) =>
+      (elasticPool ? new ProcessingError(ident, processingPhase, cause.getMessage, Some(cause))).await
+      false
+    case Failure(ex) =>
+      (elasticPool ? new ProcessingError(null, processingPhase, ex.getMessage, Some(ex))).await
+      false
+    case _ => true
+  }
+
+  private def storageSink[T](): Sink[T, NotUsed] = createSinkFromActorRef[T](elasticPool)
 
   private def createSinkFromActorRef[T](actorRef: ActorRef) = {
     Sink.actorRefWithAck[T](actorRef, StreamInitialized, Ack, StreamCompleted, StreamFailure)

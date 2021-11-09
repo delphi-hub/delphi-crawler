@@ -18,12 +18,12 @@ package de.upb.cs.swt.delphi.crawler.discovery.maven
 
 import java.net.{URI, URL}
 import java.util
-
 import akka.NotUsed
 import akka.event.LoggingAdapter
 import akka.stream.scaladsl.{RestartSource, Source}
+import de.upb.cs.swt.delphi.core.model.MavenIdentifier
 import org.apache.maven.index.reader.IndexReader
-import org.slf4j.LoggerFactory
+import org.slf4j.{Logger, LoggerFactory}
 
 import scala.concurrent.duration._
 import scala.util.{Failure, Success, Try}
@@ -41,17 +41,14 @@ trait IndexProcessing {
     ) { () => {
       val ir = Try(new MavenIndexReader(base.toURL))
       ir match {
-        case Success(indexReader) => {
+        case Success(indexReader) =>
           Source.unfoldResource[MavenIdentifier, MavenIndexReader](
             () => indexReader,
             reader => reader.read(),
             reader => reader.close())
-        }
-        case Failure(e)
-        => {
+        case Failure(e) =>
           log.error(s"Could not reach resource. Terminating crawling for $base.")
           throw e
-        }
       }
     }
     }
@@ -60,7 +57,7 @@ trait IndexProcessing {
 }
 
 class MavenIndexReader(base: URL) {
-  val log = LoggerFactory.getLogger(this.getClass)
+  val log: Logger = LoggerFactory.getLogger(this.getClass)
 
   log.info(s"New maven index reader create for $base")
   val ir = new IndexReader(null, new HttpResourceHandler(base.toURI.resolve(".index/")))
@@ -75,31 +72,30 @@ class MavenIndexReader(base: URL) {
 
   def read(): Option[MavenIdentifier] = {
 
-    def readInternal(kvp: util.Map[String, String]) = {
+    def readInternal(kvp: util.Map[String, String]): Option[MavenIdentifier] = {
       val kvpU = kvp.get("u")
       val identifierAttempt = Try(kvpU.split("|".toCharArray))
 
       identifierAttempt match {
-        case Success(identifier) => {
-          val mavenId = MavenIdentifier(base.toString, identifier(0), identifier(1), identifier(2))
+        case Success(identifier) =>
+          val mavenId = MavenIdentifier(Some(base.toString), identifier(0), identifier(1), Some(identifier(2)))
           log.debug(s"Producing $mavenId")
 
            Some(mavenId)
-        }
-        case Failure(e) => {
+        case Failure(e) =>
           log.warn(s"While processing index we received the following u-value that we could not split $kvpU. Full kvp is $kvp. Exception was $e.")
           None
-        }
       }
     }
 
-    cr.hasNext() match {
-      case true => Iterator.continually(readInternal(cr.next())).takeWhile(result => cr.hasNext()).collectFirst[MavenIdentifier]({ case Some(x) => x})
-      case false => None
+    if (cr.hasNext) {
+      Iterator.continually(readInternal(cr.next())).takeWhile(result => cr.hasNext).collectFirst[MavenIdentifier]({ case Some(x) => x })
+    } else {
+      None
     }
   }
 
-  def close() = {
+  def close():Unit = {
     ir.close()
   }
 }

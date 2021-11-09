@@ -27,15 +27,14 @@ import de.upb.cs.swt.delphi.crawler.control.ProcessActor.Go
   */
 class ProcessActor(process: Process[_]) extends Actor with ActorLogging {
   override def receive: Receive = {
-    case Go => {
+    case Go =>
       val result = process.start
       sender() ! ProcessScheduler.Finalized(process, result)
-    }
   }
 }
 
 object ProcessActor {
-  def props(process: Process[_]) = Props(new ProcessActor(process))
+  def props(process: Process[_]): Props = Props(new ProcessActor(process))
 
   case object Go
 

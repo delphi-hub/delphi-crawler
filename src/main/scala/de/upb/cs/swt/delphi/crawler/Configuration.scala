@@ -30,8 +30,7 @@ class Configuration {
 
 
 
-  lazy val elasticsearchClientUri: ElasticsearchClientUri = ElasticsearchClientUri(
-    elasticSearchInstance.host + ":" + elasticSearchInstance.portNumber)
+  lazy val elasticsearchClientUri: String = elasticSearchInstance.host + ":" + elasticSearchInstance.portNumber
 
   lazy val elasticSearchInstance : Instance = InstanceRegistry.retrieveElasticSearchInstance(this) match {
     case Success(instance) => instance
@@ -52,7 +51,7 @@ class Configuration {
   val controlServerPort : Int = 8882
 
   val defaultElasticSearchPort : Int = 9200
-  val defaultElasticSearchHost : String = "elasticsearch://localhost"
+  val defaultElasticSearchHost : String = "localhost"
 
   lazy val fallbackElasticSearchPort : Int = sys.env.get("DELPHI_ELASTIC_URI") match {
     case Some(hostString) => if(hostString.count(c => c == ':') == 2){
@@ -76,7 +75,7 @@ class Configuration {
     case None => defaultElasticSearchHost
 
   }
-  val limit : Int = 100
+  val limit : Int = 0
   val throttle : Throttle = Throttle(5, 1 second, 5, ThrottleMode.shaping)
 
   val tempFileStorage : String = "temp/"
@@ -84,6 +83,9 @@ class Configuration {
   val elasticActorPoolSize : Int = 4
   val callGraphStreamPoolSize : Int = 4
   val hermesActorPoolSize: Int = 2
+
+  val downloadActorPoolSize: Int = 8
+  val pomReadActorPoolSize: Int = 4
 
 
 

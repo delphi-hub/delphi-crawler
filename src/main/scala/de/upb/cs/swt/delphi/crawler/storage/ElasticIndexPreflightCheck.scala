@@ -18,9 +18,11 @@ package de.upb.cs.swt.delphi.crawler.storage
 
 import akka.actor.ActorSystem
 import akka.http.scaladsl.model.StatusCodes
-import com.sksamuel.elastic4s.http.ElasticDsl._
-import com.sksamuel.elastic4s.http.{ElasticClient, RequestFailure, RequestSuccess}
+import com.sksamuel.elastic4s.ElasticApi.indexExists
+import com.sksamuel.elastic4s.ElasticDsl.IndexExistsHandler
+import com.sksamuel.elastic4s.{RequestFailure, RequestSuccess}
 import de.upb.cs.swt.delphi.crawler.instancemanagement.InstanceRegistry
+import de.upb.cs.swt.delphi.crawler.tools.ElasticHelper
 import de.upb.cs.swt.delphi.crawler.{Configuration, PreflightCheck}
 
 import scala.concurrent.duration.Duration
@@ -30,10 +32,10 @@ import scala.util.{Failure, Success, Try}
 object ElasticIndexPreflightCheck extends PreflightCheck with ElasticIndexMaintenance {
   override def check(configuration: Configuration)(implicit system: ActorSystem): Try[Configuration] = {
     implicit val ec : ExecutionContext = system.dispatcher
-    lazy val client = ElasticClient(configuration.elasticsearchClientUri)
+    lazy val client = ElasticHelper.buildElasticClient(configuration)
 
     val f = client.execute {
-      indexExists("delphi")
+      indexExists(identifierIndexName) //TODO: May want to check all three indices
     } andThen {
       case _ => client.close()
     }
